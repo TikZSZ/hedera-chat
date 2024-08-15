@@ -1,34 +1,35 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useChatSDK, Message } from "./ChatSDK";
 import OpenAI from "openai";
-import { Tool, ToolDef } from './lib/aiUtils';
-
+import { Tool, ToolDef } from './utils/aiUtils';
 // Define types for customizable parts
-type MessageProcessor = ( messages: Message[],toolDefs:ToolDef[] ) => Promise<OpenAI.Chat.Completions.ChatCompletion>;
+export type AIMessageProcessor = ( messages: Message[], params: Omit<OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming, "messages"> ) => Promise<OpenAI.Chat.Completions.ChatCompletion>;
 
 // type ToolExecutor = (toolName: string, params: any) => Promise<string | undefined>;
 
 interface ChatConfig
 {
-  messageProcessor?: MessageProcessor;
-  model?: string;
+  messageProcessor?: AIMessageProcessor;
+  params: Omit<OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming, "messages"|"tools">;
 }
 
-const defaultMessageProcessor: MessageProcessor = async ( messages,toolDefs ) =>
+const defaultMessageProcessor: AIMessageProcessor = async ( messages, params ) =>
 {
   const client = new OpenAI( {
     apiKey: import.meta.env.VITE_OPENAI_API_KEY,
     dangerouslyAllowBrowser: true,
   } );
-
-  return client.chat.completions.create({
-    messages: messages.map( m => m.metadata ) as any,
-    model: "gpt-4-0125-preview",
-    tools: toolDefs as any,
-  });
+  // console.log({
+  //   messages: messages.map( m => m.rawChatBody ) as any,
+  //   ...params
+  // } )
+  return client.chat.completions.create( {
+    messages: messages.map( m => m.rawChatBody ) as any,
+    ...params
+  } );
 };
 
-export const useChat = ( config: ChatConfig = {} ) =>
+export const useAIChat = ( config: ChatConfig ) =>
 {
   const {
     messages,
@@ -42,7 +43,6 @@ export const useChat = ( config: ChatConfig = {} ) =>
   const [ error, setError ] = useState<string | null>( null );
 
   const messageProcessor = config.messageProcessor || defaultMessageProcessor;
-  const model = config.model || "gpt-4-0125-preview";
 
   const toolsMap = useMemo( () =>
   {
@@ -58,7 +58,22 @@ export const useChat = ( config: ChatConfig = {} ) =>
     return tools.map( ( tool ) => tool.toolDef );
   }, [ tools ] )
 
-  const processMessage = useCallback( async ( _: Message ) =>
+  useEffect( () =>
+  {
+    if ( messages.length > 0 && messages[ messages.length - 1 ].type === "user" )
+    {
+      invokeAI( messages[ messages.length - 1 ] );
+    } else if (
+      messages.length > 0 &&
+      messages[ messages.length - 1 ].type === "tool"
+    )
+    {
+      invokeAI( messages[ messages.length - 1 ] );
+    }
+    console.log(messages)
+  }, [ messages ] );
+
+  const invokeAI = useCallback( async ( _: Message ) =>
   {
     setError( null );
     setInProgress( true );
@@ -67,13 +82,16 @@ export const useChat = ( config: ChatConfig = {} ) =>
     addMessage( {
       id: processingMsgId,
       type: "assistant",
-      content: "Processing...",
       isVisible: true,
+      rawChatBody:{
+        role:"assistant",
+        content:"Processing..."
+      }
     } );
 
     try
     {
-      const response = await messageProcessor( messages,toolDefs );
+      const response = await messageProcessor( messages, { tools: toolDefs as any, ...config.params } );
       const choice0 = response.choices[ 0 ];
 
       if ( choice0.finish_reason === "tool_calls" )
@@ -108,25 +126,24 @@ export const useChat = ( config: ChatConfig = {} ) =>
         updateMessage( processingMsgId, {
           type: role,
           isVisible: false,
-          metadata: choice0.message,
+          rawChatBody: choice0.message,
         } );
 
         addMessages(
           toolCallsResult.map( ( toolCallResult ) => ( {
             id: Date.now().toString(),
             type: "tool",
-            metadata: toolCallResult,
+            rawChatBody: toolCallResult,
             isVisible: true,
             content: toolCallResult.content,
           } ) )
         );
       } else
       {
-        const content = choice0.message.content || "";
+        // const content = choice0.message.content || "";
         updateMessage( processingMsgId, {
           type: "assistant",
-          content: content,
-          metadata: choice0.message,
+          rawChatBody: choice0.message,
         } );
       }
     } catch ( error: any )
@@ -137,19 +154,9 @@ export const useChat = ( config: ChatConfig = {} ) =>
     {
       setInProgress( false );
     }
-  }, [ messages, addMessage, updateMessage, addMessages, messageProcessor] );
+  }, [ messages, addMessage, updateMessage, addMessages, messageProcessor ] );
 
-  useEffect( () =>
-  {
-    if (messages.length > 0 && messages[messages.length - 1].type === "user") {
-      processMessage(messages[messages.length - 1]);
-    } else if (
-      messages.length > 0 &&
-      messages[messages.length - 1].type === "tool"
-    ) {
-      processMessage(messages[messages.length - 1]);
-    }
-  }, [ messages, processMessage ] );
+
 
   return { inProgress, error };
 };

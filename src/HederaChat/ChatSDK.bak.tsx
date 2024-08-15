@@ -5,7 +5,6 @@ import React, {
   useCallback,
   ReactNode,
   useEffect,
-  useRef,
 } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,6 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
   duotoneSpace,
 } from "react-syntax-highlighter/dist/esm/styles/prism";
-
 // Types
 import AutoHideScrollbar from "@/components/AutoHideScrollbar"
 const markdownTheme = duotoneSpace
@@ -45,7 +43,6 @@ export interface ChatSDKConfig {
   initialOpen?: boolean;
   systemMessage?: string;
   connect: () => Promise<boolean>;
-  tools:Tool<any>[]
 }
 
 export interface ChatSDKActions {
@@ -54,17 +51,20 @@ export interface ChatSDKActions {
   updateMessage: (id: string, updates: Partial<Message>) => void;
   removeMessage: (id: string) => void;
   clearMessages: () => void;
-  setIsConnected: (val: boolean) => void;
-  connect: () => Promise<void>;
-  setTools:(tools:Tool<any,any>[])=>void;
 }
 
 interface ChatSDKContextType extends ChatSDKActions {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
   messages: Message[];
   config: ChatSDKConfig;
+  isMinimized: boolean;
+  toggleMinimize: () => void;
+  isFullScreen: boolean;
+  toggleFullScreen: () => void;
   isConnected: boolean;
-  
-  tools:Tool<any>[]
+  setIsConnected: (val: boolean) => void;
+  connect: () => Promise<void>;
 }
 
 // Create a context for the SDK
@@ -108,25 +108,12 @@ const dummyMsg2: Message = {
   "isVisible": true,
   "content": "Called get_account_info_tool with {} result -> \n ```json{\n    \"currentAccount\": {\n        \"metamaskEvmAddress\": \"0x205b9db8cf246891bef88b50eeb83b0eb1b109fc\",\n        \"externalEvmAddress\": \"\",\n        \"hederaAccountId\": \"0.0.4653631\",\n        \"hederaEvmAddress\": \"0xa3560ba085d67b5315864a033c3a1148491055e2\",\n        \"publicKey\": \"0x02766abf24a271be65218c8407774417275e60a98afdee08ea2aade5c7864fe721\",\n        \"balance\": {\n            \"hbars\": 98.99824476,\n            \"timestamp\": \"Sat, 10 Aug 2024 03:42:05 GMT\",\n            \"tokens\": {}\n        },\n        \"network\": \"testnet\",\n        \"mirrorNodeUrl\": \"https://testnet.mirrornode.hedera.com\"\n    },\n    \"accountInfo\": {\n        \"accountId\": \"0.0.4653631\",\n        \"alias\": \"UNLAXIEF2Z5VGFMGJIBTYOQRJBERAVPC\",\n        \"createdTime\": \"Sun, 04 Aug 2024 18:14:54 GMT\",\n        \"expirationTime\": \"Sat, 02 Nov 2024 18:14:54 GMT\",\n        \"memo\": \"lazy-created account\",\n        \"evmAddress\": \"0xa3560ba085d67b5315864a033c3a1148491055e2\",\n        \"key\": {\n            \"type\": \"ECDSA_SECP256K1\",\n            \"key\": \"02766abf24a271be65218c8407774417275e60a98afdee08ea2aade5c7864fe721\"\n        },\n        \"autoRenewPeriod\": \"7776000\",\n        \"ethereumNonce\": \"0\",\n        \"isDeleted\": false,\n        \"stakingInfo\": {\n            \"declineStakingReward\": false,\n            \"stakePeriodStart\": \"\",\n            \"pendingReward\": \"0\",\n            \"stakedToMe\": \"0\",\n            \"stakedAccountId\": \"\",\n            \"stakedNodeId\": \"\"\n        },\n        \"balance\": {\n            \"hbars\": 98.99824476,\n            \"timestamp\": \"Sat, 10 Aug 2024 03:42:05 GMT\",\n            \"tokens\": {}\n        }\n    }\n}`"
 }
-
-const dummyMsg3:Message = {
-  "id": "1723379076349",
-  "type": "assistant",
-  "content": "Sure! Here are some links to the official Hedera documentation:\n\n1. **Hedera Documentation Overview**: [Hedera Docs](https://hedera.com/docs)\n2. **Hedera Hashgraph Documentation**: [Hedera Hashgraph](https://docs.hedera.com)\n3. **Developer Portal**: [Hedera Developer Portal](https://hedera.com/developers)\n4. **SDKs and APIs**: [Hedera SDKs](https://hedera.com/developers/sdk)\n5. **Hedera Token Service**: [Token Service](https://hedera.com/token)\n\nFeel free to explore these resources for more detailed information on using the Hedera network and its services!",
-  "isVisible": true,
-  "metadata": {
-      "role": "assistant",
-      "content": "Sure! Here are some links to the official Hedera documentation:\n\n1. **Hedera Documentation Overview**: [Hedera Docs](https://hedera.com/docs)\n2. **Hedera Hashgraph Documentation**: [Hedera Hashgraph](https://docs.hedera.com)\n3. **Developer Portal**: [Hedera Developer Portal](https://hedera.com/developers)\n4. **SDKs and APIs**: [Hedera SDKs](https://hedera.com/developers/sdk)\n5. **Hedera Token Service**: [Token Service](https://hedera.com/token)\n\nFeel free to explore these resources for more detailed information on using the Hedera network and its services!",
-      "refusal": null
-  }
-}
-
 export const ChatSDKProvider: React.FC<{
   children: ReactNode;
   config: ChatSDKConfig;
 }> = ({ children, config }) => {
+  const [isOpen, setIsOpen] = useState(config.initialOpen ?? false);
   const [isConnected, setIsConnected] = useState(false);
-  const [tools,setTools] = useState(config.tools)
   const [messages, setMessages] = useState<Message[]>(
     config.systemMessage
       ? [
@@ -138,10 +125,11 @@ export const ChatSDKProvider: React.FC<{
           },
           // dummyMsg1,
           // dummyMsg2,
-          // dummyMsg3
         ]
       : []
   );
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   const addMessage = useCallback(
     (message: Message) => {
@@ -171,24 +159,36 @@ export const ChatSDKProvider: React.FC<{
     setMessages([]);
   }, []);
 
+  const toggleMinimize = useCallback(() => {
+    setIsMinimized((prev) => !prev);
+  }, []);
+
+  const toggleFullScreen = useCallback(() => {
+    setIsFullScreen((prev) => !prev);
+  }, []);
+
   const connect = useCallback(async () => {
     const resp = await config.connect();
     setIsConnected(() => resp);
   }, []);
 
   const contextValue: ChatSDKContextType = {
+    isOpen,
+    setIsOpen,
     messages,
     addMessage,
     updateMessage,
     removeMessage,
     clearMessages,
     config,
+    isMinimized,
+    toggleMinimize,
+    isFullScreen,
+    toggleFullScreen,
     addMessages,
     connect: connect,
     isConnected,
     setIsConnected,
-    tools,
-    setTools
   };
 
   return (
@@ -199,10 +199,7 @@ export const ChatSDKProvider: React.FC<{
 };
 
 import OpenAI from "openai";
-import { tools } from "./lib/tools";
-import { ScrollArea } from "./components/ui/scroll-area";
-import { DynamicStructuredTool, Tool } from "./lib/aiUtils";
-import { useChat } from "./useChatHook2";
+import { tools } from "./utils/tools";
 const client = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
   dangerouslyAllowBrowser: true,
@@ -215,35 +212,40 @@ const tools_map = tools.reduce((acc, tool) => {
 
 const tool_defs_map = tools.map((tool) => tool.toolDef);
 
-interface ChatDialogProps{
-  minimzed:boolean
-  fullscreen:boolean
-}
-
-export const ChatDialog = ({minimzed,fullscreen}:ChatDialogProps) => {
+export const ChatDialog: React.FC = () => {
   const {
+    isOpen,
+    setIsOpen,
     messages,
     addMessage,
     config,
+    isMinimized,
+    toggleMinimize,
+    addMessages,
+    updateMessage,
+    removeMessage,
+    clearMessages,
+    isFullScreen,
+    toggleFullScreen,
     isConnected,
     connect,
   } = useChatSDK();
 
   const [inputValue, setInputValue] = useState("");
   const [error, setError] = useState<string | null>();
+  const [submitInProgress, setSubmitInProgress] = useState<boolean>(false);
 
-  const [isMinimized, setIsMinimized] = useState<boolean>(minimzed);
-  const [isFullScreen, setIsFullScreen] = useState<boolean>(fullscreen);
+  
 
-  const {inProgress,error:chatError} = useChat()
-
-  const toggleMinimize = useCallback(() => {
-    setIsMinimized((prev) => !prev);
-  }, []);
-
-  const toggleFullScreen = useCallback(() => {
-    setIsFullScreen((prev) => !prev);
-  }, []);
+  // useEffect(() => {
+  //   console.log(messages, submitInProgress);
+  //   if (messages.length > 0) {
+  //   const lastMessage = messages[messages.length - 1];
+  //   setSubmitInProgress(lastMessage.type === "user");
+  // } else {
+  //   setSubmitInProgress(false);
+  // }
+  // }, [messages]);
 
   useEffect(() => {
     if (!isConnected) {
@@ -257,15 +259,117 @@ export const ChatDialog = ({minimzed,fullscreen}:ChatDialogProps) => {
     }
   }, [isConnected]);
 
-  const messagesEndRef = useRef<any>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
   
   useEffect(() => {
-    scrollToBottom();
+    // React to changes in messages
+    console.log("use effect ran with", messages);
+    if (messages.length > 0 && messages[messages.length - 1].type === "user") {
+      processMessage(messages[messages.length - 1]);
+      setSubmitInProgress(true);
+
+    } else if (
+      messages.length > 0 &&
+      messages[messages.length - 1].type === "tool"
+    ) {
+      processMessage(messages[messages.length - 1]);
+      setSubmitInProgress(true);
+    }else{
+      if(messages.length > 0 && messages[messages.length - 1].type === "assistant" && messages[messages.length - 1].content!=="Processing..."){
+        setSubmitInProgress(false);
+      }
+    }
   }, [messages]);
+
+  const processMessage = async (message: Message) => {
+    // Add a temporary "processing" message
+    const processingMsgId = Date.now().toString();
+
+    addMessage({
+      id: processingMsgId,
+      type: "assistant",
+      content: "Processing...",
+      isVisible: true,
+    });
+
+    const msgsToSend: Record<string, any>[] = [];
+
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      if (msg.metadata) {
+        msgsToSend.push(msg.metadata);
+      }
+    }
+    // console.log(messages, msgsToSend);
+    try {
+      // Simulate API call or complex processing
+      // const response = await yourExternalAPIorProcessingLogic(message.content);
+
+      const response = await client.chat.completions.create({
+        messages: msgsToSend as any,
+        model: "gpt-4o-mini",
+        tools: tool_defs_map as any,
+      });
+
+      const choice0 = response.choices[0];
+
+      // Create a message containing the result of the function call
+      if (choice0.finish_reason === "tool_calls") {
+        const { role, tool_calls } = choice0.message;
+        const tool_calls_result = [];
+
+        for (const tool_call of tool_calls!) {
+          const tool_name = tool_call.function.name;
+          const tool_params = JSON.parse(tool_call.function.arguments);
+
+          if (tools_map[tool_name]) {
+            const tools_result = await tools_map[tool_name](tool_params);
+            tool_calls_result.push({
+              role: "tool",
+              content: `Called ${tool_name} with ${JSON.stringify(tool_params)} result -> \n ${tools_result}`,
+              tool_call_id: tool_call.id,
+            });
+            console.log({ tool_name, tool_params, tools_result });
+          }
+        }
+
+        console.log(tool_calls_result);
+        // console.log(
+        //   tool_calls_result.map((tool_call_result) => ({
+        //     id: Date.now().toString(),
+        //     type: "tool",
+        //     metadata: tool_call_result,
+        //   }))
+        // );
+        updateMessage(processingMsgId, {
+          type: role,
+          isVisible: false,
+          metadata: choice0.message,
+        });
+
+        addMessages(
+          tool_calls_result.map((tool_call_result) => ({
+            id: Date.now().toString(),
+            type: "tool",
+            metadata: tool_call_result,
+            isVisible: true,
+            content: tool_call_result.content,
+          }))
+        );
+      } else {
+        console.log(response);
+        const content = choice0.message.content || "";
+        // Update the processing message with the result
+        updateMessage(processingMsgId, {
+          type: "assistant",
+          content: content,
+          metadata: choice0.message,
+        });
+      }
+    } catch (error) {
+      console.error("Error processing message:", error);
+      // Handle error (e.g., show error message)
+    }
+  };
 
   const handleSend = async () => {
     if (inputValue.trim()) {
@@ -278,20 +382,20 @@ export const ChatDialog = ({minimzed,fullscreen}:ChatDialogProps) => {
       };
 
       if (!isConnected) {
-        setError("Wallet not connected, HederaChat wont be able to execute transactions!");
-        // return;
+        setError("Hedera wallet not connected");
+        return;
       }
 
       addMessage(newMessage);
       setInputValue("");
     }
   };
-  
+
 
   return (
     <div
       className={`fixed bottom-4 right-4 ${
-        isMinimized ? "w-11/12 md:w-auto" : isFullScreen ? "md:w-1/2 w-11/12 h-5/6" : "md:w-96 md:h-[500px] w-11/12 h-[50%]"
+        isMinimized ? "w-auto" : isFullScreen ? "w-1/2 h-5/6" : "w-96 h-[500px]"
       } rounded-lg border bg-card text-card-foreground shadow-sm`}
       style={config.customStyles?.chatWindow}
     >
@@ -316,7 +420,7 @@ export const ChatDialog = ({minimzed,fullscreen}:ChatDialogProps) => {
               {isMinimized ? (
                 <Maximize className="h-4 w-4" />
               ) : (
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4  " />
               )}
             </Button>
           </div>
@@ -330,14 +434,14 @@ export const ChatDialog = ({minimzed,fullscreen}:ChatDialogProps) => {
             )}
             
             <AutoHideScrollbar
-              className="flex-1 overflow-y-auto p-4 space-y-2 chat-messages"
+              className="flex-1 overflow-y-auto p-4 space-y-4 chat-messages"
               style={config.customStyles?.messageContainer}
             >
               {messages.map((message, index) => (
                 message.isVisible && (
                   <div
                     key={index}
-                    className={`flex m-auto ${isFullScreen && "w-11/12 md:w-3/4"}`}
+                    className={`flex m-auto ${isFullScreen && "w-3/4"}`}
                   >
                     <div
                       className={`flex w-full flex-col gap-2 rounded-lg px-3 py-2 text-sm chat-message  ${
@@ -366,19 +470,6 @@ export const ChatDialog = ({minimzed,fullscreen}:ChatDialogProps) => {
                                 {children}
                               </code>
                             )
-                          },
-                          a({ node, children, href, ...props }) {
-                            return (
-                              <a
-                                href={href}
-                                className="text-muted-foreground hover:text-secondary-foreground underline"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                {...props}
-                              >
-                                {children}
-                              </a>
-                            );
                           }
                         }}
                         className="prose prose-sm max-w-none"
@@ -389,7 +480,6 @@ export const ChatDialog = ({minimzed,fullscreen}:ChatDialogProps) => {
                   </div>
                 )
               ))}
-              <div ref={messagesEndRef} />
             </AutoHideScrollbar>
             <div className="p-4 border-t">
               <form className="flex w-full items-center space-x-2" onSubmit={(e) => { e.preventDefault(); handleSend(); }}>
@@ -399,8 +489,8 @@ export const ChatDialog = ({minimzed,fullscreen}:ChatDialogProps) => {
                   placeholder="Type a message..."
                   className="flex-1"
                 />
-                <Button type="submit" size="icon" disabled={inProgress}>
-                  {inProgress ? (
+                <Button type="submit" size="icon" disabled={submitInProgress}>
+                  {submitInProgress ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Send className="h-4 w-4" />
@@ -425,7 +515,7 @@ export const ChatSDK: React.FC<{
   return (
     <ChatSDKProvider config={config}>
       {children}
-      <ChatDialog fullscreen={false} minimzed={false} />
+      <ChatDialog />
     </ChatSDKProvider>
   );
 };

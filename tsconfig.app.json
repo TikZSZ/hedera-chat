@@ -24,7 +24,8 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@hashgraph/*": ["./node_modules/hashconnect/node_modules/@hashgraph/*"]
     }
   },
   "include": ["src", "workflow/Workflow1.ts", "workflow/Workflow.ts", "workflow/Workflow2.ts", "workflow/Workflow3.ts", "workflow/Workflow4.bak.ts", "workflow/Workflow4.ts", "workflow/Workflow5-nodedef.bak.ts", "workflow/Workflow5.ts", "workflow/Workflow6-reworked-types.ts", "workflow/Workflow7-static-types+subgraph+condtional-traversel.ts", "workflow/Workflow7-static-types+subgraph+condtional.bak.ts", "workflow/Workflow7-static-types+subgraph+condtional.ts", "workflow/Workflow8-enhanced graph.ts"]

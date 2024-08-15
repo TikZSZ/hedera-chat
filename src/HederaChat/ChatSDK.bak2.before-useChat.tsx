@@ -199,9 +199,9 @@ export const ChatSDKProvider: React.FC<{
 };
 
 import OpenAI from "openai";
-import { tools } from "./lib/tools";
-import { ScrollArea } from "./components/ui/scroll-area";
-import { DynamicStructuredTool, Tool } from "./lib/aiUtils";
+import { tools } from "./utils/tools";
+import { ScrollArea } from "../components/ui/scroll-area";
+import { DynamicStructuredTool, Tool } from "./utils/aiUtils";
 const client = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
   dangerouslyAllowBrowser: true,

@@ -1,4 +1,4 @@
-import { handleSnapAPIRequest } from "../SnapSDK";
+import { handleSnapAPIRequest } from "./SnapSDK";
 
 interface Response {
   response:Record<string,any>|null,

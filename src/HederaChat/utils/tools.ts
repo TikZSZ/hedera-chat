@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { DynamicStructuredTool } from "./aiUtils";
-import { accountInfoSchema, getAccountInfoAPI, getTransactionsAPI, sendCryptoSchema, transactionSchema, transferCryptoAPI, transformResponse, TransformSchema } from "./hederaUtils";
+import { accountInfoSchema, getAccountInfoAPI, getTransactionsAPI, sendCryptoSchema, transactionSchema, transferCryptoAPI, transformResponse, TransformSchema } from "./HederaAPIs";
+import { executeTransaction, getConnectedAccountIds, hashconnect, signTransaction } from "@/hashconnect";
+import { TransferTransaction } from "@hashgraph/sdk";
 
 const get_delivery_date = ( params: Record<string, any> ) =>
 {
@@ -42,11 +44,41 @@ const get_transactions_tool = new DynamicStructuredTool( {
     transaction_Id: z.string().describe( "User provided transaction Id" ).optional()
   } )
 } )
+// const transfer_crypto_tool = new DynamicStructuredTool( {
+//   name: "transfer_crypto_tool",
+//   description: "Sends the assets to the receiver's address from users account. AssetType could be (HBAR|TOKEN|NFT) HBAR is default value, if user wants to send any other asset type they would need to provide the asset id as well.",
+//   func: async ( params: Parameters<typeof transferCryptoAPI>[ 0 ] ) =>
+//   {
+//     const { response, error } = await transferCryptoAPI( params )
+//     if ( error )
+//     {
+//       return JSON.stringify( { error: error } )
+//     }
+//     return getTransformedResponse( response, sendCryptoSchema )
+//   },
+//   schema: z.object( {
+//     assetType: z.enum( [ "HBAR", "TOKEN", "NFT" ] ).optional().default( "HBAR" ),
+//     to: z.string().describe( "Reciver's account id" ),
+//     amount: z.number(),
+//     assetId: z.string().describe( "Asset Id in case asset type is not HBAR" ).optional(),
+//     memo: z.string().describe( "Optional transaction memo, very important when sending assets to exchanges" ).optional()
+//   } )
+// } )
+
 const transfer_crypto_tool = new DynamicStructuredTool( {
   name: "transfer_crypto_tool",
   description: "Sends the assets to the receiver's address from users account. AssetType could be (HBAR|TOKEN|NFT) HBAR is default value, if user wants to send any other asset type they would need to provide the asset id as well.",
   func: async ( params: Parameters<typeof transferCryptoAPI>[ 0 ] ) =>
   {
+    const accountIds = hashconnect.connectedAccountIds
+    console.log(accountIds)
+    
+    let trans = new TransferTransaction( {
+      hbarTransfers: [ { accountId: accountIds[ 0 ].toString(), amount: -params.amount }, { accountId: params.to, amount: params.amount } ]
+    } )
+    const signedTrans = await  executeTransaction(accountIds[0],trans)
+    
+    console.log("hashpack trans executed",signedTrans)
     const { response, error } = await transferCryptoAPI( params )
     if ( error )
     {

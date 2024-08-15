@@ -1,3 +1,12 @@
+const snapId = `npm:@hashgraph/hedera-wallet-snap`;
+import { MetaMaskInpageProvider } from "@metamask/providers";
+
+declare global {
+  interface Window {
+      ethereum: MetaMaskInpageProvider
+  }
+}
+
 export const getProvider = async () => {
   let mmFound = false;
   if ("detected" in window.ethereum) {
@@ -44,13 +53,12 @@ export const getProvider = async () => {
 
 // Get permissions to interact with and install the Hedera Wallet Snap
 export async function connect():Promise<boolean> {
-  console.log("snap id", snapId);
   const provider = await getProvider() as MetaMaskInpageProvider;
   console.log("provider",provider===window.ethereum)
   let snaps = await provider.request({
     method: "wallet_getSnaps"
   });
-  console.log("Installed snaps: ", snaps);
+  // console.log("Installed snaps: ", snaps);
 
   try {
     const result = await provider.request({
@@ -59,12 +67,12 @@ export async function connect():Promise<boolean> {
         [snapId]: {}
       }
     });
-    console.log("result: ", result);
+    // console.log("result: ", result);
     
     snaps = await provider.request({
       method: "wallet_getSnaps"
     });
-    console.log("snaps: ", snaps);
+    // console.log("snaps: ", snaps);
 
     if (snaps && snapId in snaps) {
       // the snap is installed
@@ -96,14 +104,6 @@ export  type RequestArguments = {
   params?: unknown[] | Record<string, unknown>;
 };
 
-const snapId = `npm:@hashgraph/hedera-wallet-snap`;
-import { MetaMaskInpageProvider } from "@metamask/providers";
-
-declare global {
-  interface Window {
-      ethereum: MetaMaskInpageProvider
-  }
-}
 
 // Interact with 'hello' API of Hedera Wallet Snap
 export async function handleSnapAPIRequest(params:RequestArguments["params"]) {

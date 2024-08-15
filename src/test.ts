@@ -1,4 +1,4 @@
-import { tool,DynamicStructuredTool } from "./lib/aiUtils";
+import { tool,DynamicStructuredTool } from "./HederaChat/utils/aiUtils";
 import {z} from "zod"
 const adderSchema = z.object( {
   a: z.number(),

@@ -15,56 +15,12 @@ import {
   duotoneSpace,
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 const markdownTheme = duotoneSpace;
-import { ModeToggle } from "./mode-toggle";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+
 
 const LandingPage = () => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const NavItems = () => (
-    <>
-      <Button variant="ghost" className="mr-4">
-        Docs
-      </Button>
-      <Button variant="ghost" className="mr-4">
-        Pricing
-      </Button>
-      <Button variant="default">Get Started</Button>
-    </>
-  );
-
   return (
     <div className="relative min-h-screen bg-background text-foreground">
-      <header className="p-4 bg-card shadow-md fixed top-0 bg-opacity-10 w-full z-50">
-        <nav className="flex justify-between items-center max-w-6xl mx-auto">
-          <h1 className="text-2xl font-bold">HederaChat</h1>
-          <div className="flex items-center">
-            <div className="relative mr-4" >
-              <ModeToggle />
-            </div>
-            <div className="hidden md:flex">
-              <NavItems />
-            </div>
-            <Sheet open={isOpen} onOpenChange={setIsOpen}>
-              <SheetTrigger asChild className="md:hidden pt-1">
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="top" className="w-full">
-                <nav className="flex flex-col space-y-4 mt-8">
-                  <NavItems />
-                </nav>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </nav>
-      </header>
-
+      
       <main className="max-w-6xl mx-auto pt-40 px-4 ">
         <section className="text-center mb-16 min-h-fit">
           <h2 className="text-4xl font-bold mb-4">
@@ -134,7 +90,6 @@ const LandingPage = () => {
                 components={{
                   code({ node, className, children, ...props }) {
                     const match = /language-(\w+)/.exec(className || "");
-                    console.log(match);
                     return match ? (
                       <div>
                         {/* @ts-ignore */}
