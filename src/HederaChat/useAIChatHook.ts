@@ -82,6 +82,7 @@ export const useAIChat = ( config: ChatConfig ) =>
     addMessage( {
       id: processingMsgId,
       type: "assistant",
+      content:"Processing...",
       isVisible: true,
       rawChatBody:{
         role:"assistant",
@@ -96,7 +97,7 @@ export const useAIChat = ( config: ChatConfig ) =>
 
       if ( choice0.finish_reason === "tool_calls" )
       {
-        const { role, tool_calls } = choice0.message;
+        const { tool_calls } = choice0.message;
         const toolCallsResult = [];
 
 
@@ -124,8 +125,8 @@ export const useAIChat = ( config: ChatConfig ) =>
         }
 
         updateMessage( processingMsgId, {
-          type: role,
           isVisible: false,
+          content:choice0.message.content,
           rawChatBody: choice0.message,
         } );
 
@@ -134,7 +135,7 @@ export const useAIChat = ( config: ChatConfig ) =>
             id: Date.now().toString(),
             type: "tool",
             rawChatBody: toolCallResult,
-            isVisible: true,
+            isVisible: false,
             content: toolCallResult.content,
           } ) )
         );
@@ -143,6 +144,7 @@ export const useAIChat = ( config: ChatConfig ) =>
         // const content = choice0.message.content || "";
         updateMessage( processingMsgId, {
           type: "assistant",
+          content:choice0.message.content,
           rawChatBody: choice0.message,
         } );
       }

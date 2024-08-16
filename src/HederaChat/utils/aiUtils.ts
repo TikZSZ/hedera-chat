@@ -1,186 +1,145 @@
-import { z, ZodSchema, } from "zod";
+import z, { type ZodSchema } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
-interface ToolOptions
-{
+interface ToolOptions<T extends ZodSchema> {
   name?: string;
   description: string;
-  schema: ZodSchema<any>;
-  addErrorsInOutput?:boolean
+  schema: T;
+  addErrorsInOutput?: boolean;
 }
 
-export interface ToolDef{
-  type:string,
-  function:{
-    name:string,
-    description:string,
-    parameters:Record<string,any>
-  },
+export interface ToolDef {
+  type: string;
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, any>;
+  };
 }
 
-export interface Tool<TInput, TOutput=Promise<string|void>>
-{
-  invoke: ( input?: TInput ) => TOutput;
+export interface Tool<T extends ZodSchema> {
+  invoke: (input?: z.infer<T>) => Promise<string | void>;
   name: string;
   description: string;
-  schema: ZodSchema<any>;
-  toolDef:ToolDef
+  schema: T;
+  toolDef: ToolDef;
 }
 
+function createToolDef<T extends ZodSchema>(name: string, description: string, schema: T): ToolDef {
+  const paramSchema = zodToJsonSchema(schema);
+  delete paramSchema.$schema;
+  return {
+    type: "function",
+    function: {
+      name,
+      description,
+      parameters: paramSchema,
+    },
+  };
+}
 
-export function tool<TInput> (
-  fn: ( input?: TInput ) => Promise<string|undefined>,
-  options: ToolOptions
-): Tool<TInput>
-{
-  let { name, description, schema } = options;
-  if(!name){
-    name = fn.name
-  }
-  // Wrap the function with input validation and error handling
-  const invoke = async ( input?: TInput ): Promise<string|void> =>
-  {
-    try
-    {
-      // Validate the input using the schema
-      const validatedInput = schema.parse( input );
+export function tool<T extends ZodSchema>(
+  fn: (input: z.infer<T>) => Promise<string | undefined> | string | undefined,
+  options: ToolOptions<T>
+): Tool<T> {
+  const name = options.name || fn.name;
+  const { description, schema, addErrorsInOutput = false } = options;
 
-      // Call the wrapped function with validated input
-      return await fn( validatedInput );
-    } catch ( error:any )
-    {
-      // Handle validation or execution errors
-      if (options.addErrorsInOutput){
-        return `Error in tool "${name}": ${error.message}`
-      }else{
-        throw new Error( `Error in tool "${name}": ${error.message}` );
+  const invoke = async (input?: z.infer<T>): Promise<string | void> => {
+    try {
+      const validatedInput = schema.parse(input);
+      const resp =  await fn(validatedInput);
+      return resp
+    } catch (error: any) {
+      if (addErrorsInOutput) {
+        return `Error in tool "${name}": ${error.message}`;
+      } else {
+        throw new Error(`Error in tool "${name}": ${error.message}`);
       }
     }
   };
-
-  const paramSchema = zodToJsonSchema( schema )
-  delete paramSchema.$schema
-  const toolDef = {
-    type: "function",
-    function: {
-      name: name,
-      description: description,
-      parameters: paramSchema
-    }
-  }
 
   return {
     invoke,
     name,
     description,
-    schema: schema,
-    toolDef
+    schema,
+    toolDef: createToolDef(name, description, schema),
   };
 }
 
+export class DynamicStructuredTool<T extends ZodSchema> implements Tool<T> {
+  public name: string;
+  public description: string;
+  public schema: T;
+  public toolDef: ToolDef;
+  private func: (input: z.infer<T>) => Promise<string | undefined> | string | undefined;
+  private addErrorsInOutput: boolean;
 
-export class DynamicStructuredTool<TInput> implements Tool<TInput, any>
-{
-  public name: string
-  public description: string
-  public schema: ZodSchema
-  private  func: ( input: TInput ) => Promise<string|undefined>|string|undefined
-  private addErrorsInOutput?:boolean = false
-  public toolDef:ToolDef
-
-  constructor( inputs: ToolOptions & {func: ( input: TInput ) => Promise<string|undefined>|string|undefined} )
-  {
-    inputs.name ? this.name = inputs.name : this.name = inputs.func.name
-    this.description = inputs.description
-    this.schema = inputs.schema
-    this.func = inputs.func
-    if(inputs.addErrorsInOutput !== undefined){
-      this.addErrorsInOutput = inputs.addErrorsInOutput
-    }
-    const paramSchema = zodToJsonSchema( this.schema )
-    delete paramSchema.$schema
-    this.toolDef = {
-      type: "function",
-      function: {
-        name: this.name,
-        description: this.description,
-        parameters: paramSchema
-      }
-    }
+  constructor(inputs: ToolOptions<T> & { func: (input: z.infer<T>) => Promise<string | undefined> | string | undefined }) {
+    this.name = inputs.name || inputs.func.name;
+    this.description = inputs.description;
+    this.schema = inputs.schema;
+    this.func = inputs.func;
+    this.addErrorsInOutput = inputs.addErrorsInOutput || true;
+    this.toolDef = createToolDef(this.name, this.description, this.schema);
   }
 
-
-  invoke = async ( input?: TInput ): Promise<string|undefined> =>
-  {
-    try
-    {
-      // Validate the input using the schema
-      const validatedInput = this.schema.parse( input );
-
-      // Call the wrapped function with validated input
-      return await this.func( validatedInput );
-    } catch ( error:any )
-    {
-      if(this.addErrorsInOutput){
-        console.log("i was thrown")
-        return `Error in tool "${this.name}": ${error.message}`
-      }else{
-        throw new Error( `Error in tool "${this.name}": ${error.message}` );
+  invoke = async (input?: z.infer<T>): Promise<string | void> => {
+    try {
+      const validatedInput = this.schema.parse(input);
+      return await this.func(validatedInput);
+    } catch (error: any) {
+      if (this.addErrorsInOutput) {
+        return `Error in tool "${this.name}": ${error.message}`;
+      } else {
+        throw new Error(`Error in tool "${this.name}": ${error.message}`);
       }
-      // Handle validation or execution errors
     }
   };
-
-  // get toolDef ()
-  // {
-  //   const paramSchema = zodToJsonSchema( this.schema )
-  //   delete paramSchema.$schema
-  //   return {
-  //     type: "function",
-  //     function: {
-  //       name: this.name,
-  //       description: this.description,
-  //       parameters: paramSchema
-  //     }
-  //   }
-  // }
-
 }
 
-// if(import.meta.main){
-//   // Example usage
-//   const adderSchema = z.object( {
-//     a: z.number(),
-//     b: z.number(),
-//   } );
+// Test code
+if (import.meta.main) {
+  const adderSchema = z.object({
+    a: z.number(),
+    b: z.number(),
+  });
 
-//   const adderTool = tool(
-//     async ( input: { a: number; b: number } ): Promise<string> =>
-//     {
-//       const sum = input.a + input.b;
-//       return `The sum of ${input.a} and ${input.b} is ${sum}`;
-//     },
-//     {
-//       name: "adder",
-//       description: "Adds two numbers together",
-//       schema: adderSchema,
-//     }
-//   );
-//   console.log( zodToJsonSchema( adderTool.schema, { name: "fn" } )[ "definitions" ]![ "fn" ] )
-  
-//   // // Invoke the tool
-//   // adderTool.invoke( { a: 1, b: 2 } ).then( console.log ).catch( console.error );
-  
-//   function add ( input: { a: number; b: number } )
-//   {
-//     const sum = input.a + input.b;
-//     return `The sum of ${input.a} and ${input.b} is ${sum}`;
-//   }
-  
-//   const addTool = new DynamicStructuredTool( {name:"Number Adder",description:"Adds two numbers",func:add,schema:adderSchema,addErrorsInOutput:true} )
+  // Test functional approach
+  const adderTool = tool(
+    async (input: z.infer<typeof adderSchema>): Promise<string> => {
+      const sum = input.a + input.b;
+      return `The sum of ${input.a} and ${input.b} is ${sum}`;
+    },
+    {
+      name: "adder",
+      description: "Adds two numbers together",
+      schema: adderSchema,
+    }
+  );
 
-//   console.log(JSON.stringify(addTool.toolDef))
-//   console.log((await addTool.invoke({a:4,b:5})))
-// }
+  console.log("Functional Approach Test:");
+  console.log("Tool Definition:", JSON.stringify(adderTool.toolDef, null, 2));
+  adderTool.invoke({ a: 1, b: 2 }).then(console.log).catch(console.error);
 
+  // Test class-based approach
+  const addTool = new DynamicStructuredTool({
+    name: "Number Adder",
+    description: "Adds two numbers",
+    func: (input: z.infer<typeof adderSchema>) => {
+      const sum = input.a + input.b;
+      return `The sum of ${input.a} and ${input.b} is ${sum}`;
+    },
+    schema: adderSchema,
+    addErrorsInOutput: true,
+  });
 
+  console.log("\nClass-based Approach Test:");
+  console.log("Tool Definition:", JSON.stringify(addTool.toolDef, null, 2));
+  addTool.invoke({ a: 4, b: 5 }).then(console.log).catch(console.error);
+
+  // Test error handling
+  console.log("\nError Handling Test:");
+  addTool.invoke({ a: "not a number", b: 5 } as any).then(console.log).catch(console.error);
+}

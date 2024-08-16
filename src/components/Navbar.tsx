@@ -62,14 +62,17 @@ export const Navbar = () => {
 
   const { getSystemMessage, updateSystemMessage } = useChatSDK();
 
-  useEffect(() => {
-    init();
-  }, []);
+  // useEffect(() => {
+  //   init();
+  // }, []);
 
   useEffect(() => {
     const cancel = setTimeout(() => {
       const message = getSystemMessage();
       if (message) {
+        if(!accountIds || accountIds.length < 1){
+          return
+        }
         const updatedSysMessage = {
           ...message,
           rawChatBody: {
@@ -143,7 +146,6 @@ export const Navbar = () => {
               {isConnected ? (
                 <>
                   <DropdownMenuLabel>Wallet</DropdownMenuLabel>
-
                   <DropdownMenuRadioGroup
                     value={selectedAccount!}
                     onValueChange={setSelectedAccount}
@@ -192,7 +194,7 @@ export const Navbar = () => {
   );
 
   return (
-    <header className="p-4 bg-card shadow-md fixed top-0 bg-opacity-10 w-full z-50">
+    <header className="p-4 bg-card shadow-md fixed top-0 bg-opacity-10 w-full  z-10">
       <nav className="flex justify-between items-center max-w-6xl mx-auto">
         <Link to="/">
           <h1 className="text-2xl font-bold">HederaChat</h1>

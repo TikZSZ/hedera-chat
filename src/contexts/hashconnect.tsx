@@ -74,9 +74,9 @@ export default function HashConnectProvider({ children }: PropsWithChildren) {
     //     false
     //   );
     //register events
-    setUpHashConnectEvents();
-
+    
     //initialize
+    setUpHashConnectEvents();
     await hashconnect.init();
   };
 
@@ -95,7 +95,7 @@ export default function HashConnectProvider({ children }: PropsWithChildren) {
       console.log("Paired with wallet", data);
       if(data){
         setPairingData(data);
-        setAccountIds([data.accountIds[0],"0.0.52687"])
+        setAccountIds(data.accountIds)
         setSelectedAccount(data.accountIds[0])
       }
     });

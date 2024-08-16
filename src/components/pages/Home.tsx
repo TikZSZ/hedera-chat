@@ -5,6 +5,7 @@ import { MessageSquare, Code, Zap, Paperclip, Send } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Markdown = lazy(() => import("react-markdown"));
+
 // Simple loading component
 // Improved loading components
 const MarkdownLoading = () => (

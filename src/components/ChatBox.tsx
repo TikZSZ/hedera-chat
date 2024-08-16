@@ -70,6 +70,7 @@ export const ChatBox = ({minimzed,fullscreen}:ChatDialogProps) => {
       const newMessage: Message = {
         id: Date.now().toString(),
         type: "user",
+        content:inputValue,
         isVisible: true,
         rawChatBody:{ role: "user", content: inputValue }
       };
@@ -87,7 +88,7 @@ export const ChatBox = ({minimzed,fullscreen}:ChatDialogProps) => {
   return (
     <div
       className={`fixed bottom-4 right-4  ${
-        isMinimized ? "w-11/12 md:w-auto" : isFullScreen ? "md:w-1/2 w-11/12 h-5/6" : "md:w-96 md:h-[500px] w-11/12 h-[50%]"
+        isMinimized ? "w-11/12 md:w-auto" : isFullScreen ? "z-20 md:w-[95%] w-11/12 h-[95%]" : "md:w-96 md:h-[500px] w-11/12 h-[50%]"
       } rounded-lg border bg-card text-card-foreground shadow-sm`}
       style={config.customStyles?.chatWindow}
     >
@@ -132,7 +133,7 @@ export const ChatBox = ({minimzed,fullscreen}:ChatDialogProps) => {
               {messages.map((message, index) => (
                 message.isVisible && (
                   <div
-                    key={index}
+                    key={message.id}
                     className={`flex m-auto ${isFullScreen && "w-11/12 md:w-3/4"}`}
                   >
                     <div
@@ -179,7 +180,7 @@ export const ChatBox = ({minimzed,fullscreen}:ChatDialogProps) => {
                         }}
                         className="prose prose-sm max-w-none"
                       >
-                        {message.rawChatBody.content}
+                        {message.content}
                       </Markdown>
                     </div>
                   </div>

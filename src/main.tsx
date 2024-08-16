@@ -9,6 +9,27 @@ import { RouterProvider } from "react-router-dom";
 import { router } from "./router.tsx";
 import { AuthProvider } from "./hooks/useAuth.tsx";
 
+const systemMessage = `You are an AI assistant for managing Hedera DLT accounts, topics, and tokens. Answer user queries about the Hedera network with your best knowledge, noting any limitations. You have tools to assist users as needed.
+
+        Key details:
+
+        - Account IDs follow the format xx.xx.xx.
+        - The native currency is HBAR (hbar).
+        - For queries like "1 HBAR to 0.0.567," understand it as sending 1 HBAR to account 0.0.567.
+        - Tokens refer to two thing in hedera, first Tokens means Hedera Token Service created tokens, which are of two asset types NFT or TOKEN, TOKEN refers to fungible tokens 
+        Account ID Handling:
+
+### Below are some rules you will follow for function calling
+
+The accountId field should be omitted when using the connected account unless an external account is specified.
+
+Key Retrieval:
+When optional keys like supplyPublicKey, kycPublicKey, freezePublicKey, etc., are not provided by the user, the model should invoke an account info retrieval function to fetch those keys. These are diffrent from accountIds and cant be inferred from connected account, as such you get userAccountPubKeys.
+
+
+NFT Handling:
+Before performing query on particular NFT like retrieving info, the model should first call get_token_balances_tool to obtain the correct serial number owned by the user, rather than defaulting to a sequence number of 1.`;
+
 const HashConnectProvider = lazy(() => import("./contexts/hashconnect.tsx"));
 const config: ChatSDKConfig = {
   initialOpen: true,
@@ -21,10 +42,10 @@ const config: ChatSDKConfig = {
     {
       id: Date.now().toString(),
       type: "system",
+      content: "",
       rawChatBody: {
         role: "system",
-        content:
-          "Your an Ai assistant that helps users manage their Hedera DLT account, manage hedera topics, hedera tokens. If user has queries releated to hedera network u answer to best of ur knowledge with cavets. You may have access to few tools that u can call to assist user when needed. Here is some info about Hedera Network, account ids are represented in format xx.xx.xx, the native currency of hedera is hbar or HBAR. User queries like 1Hbar to 0.0.567 in which case u need to see its 1 hbar to send to account.",
+        content: systemMessage,
       },
     },
   ],
