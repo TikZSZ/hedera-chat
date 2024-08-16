@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useId } from 'react';
 import { useChatSDK, Message } from "./ChatSDK";
 import OpenAI from "openai";
+
 import { Tool, ToolDef } from './utils/aiUtils';
 // Define types for customizable parts
 export type AIMessageProcessor = ( messages: Message[], params: Omit<OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming, "messages"> ) => Promise<OpenAI.Chat.Completions.ChatCompletion>;
@@ -135,7 +136,7 @@ export const useAIChat = ( config: ChatConfig ) =>
             id: Date.now().toString(),
             type: "tool",
             rawChatBody: toolCallResult,
-            isVisible: false,
+            isVisible: true,
             content: toolCallResult.content,
           } ) )
         );

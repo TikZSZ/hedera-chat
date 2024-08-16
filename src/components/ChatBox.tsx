@@ -133,7 +133,7 @@ export const ChatBox = ({minimzed,fullscreen}:ChatDialogProps) => {
               {messages.map((message, index) => (
                 message.isVisible && (
                   <div
-                    key={message.id}
+                    key={index}
                     className={`flex m-auto ${isFullScreen && "w-11/12 md:w-3/4"}`}
                   >
                     <div

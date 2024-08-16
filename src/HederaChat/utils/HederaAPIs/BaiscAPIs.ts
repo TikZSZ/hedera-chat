@@ -5,6 +5,7 @@ import { baseResponseSchema, getExternalAccountParams, getTransformedResponse, H
 
 
 export const getAccountInfoAPISchema = z.object( {
+  network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
   accountId: z.string().describe( "User provided account id. If not provided, the connected account will be used." ).optional()
 } )
 
@@ -42,6 +43,7 @@ export const getAccountInfoAPI = async ( params: z.infer<typeof getAccountInfoAP
 }
 
 export const getTransactionsAPISchema = z.object( {
+  network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
   transactionId: z.string().describe( "User provided transaction Id" ).optional(), accountId: z.string().describe( "User provided account id" ).optional().optional()
 } )
 
@@ -76,12 +78,17 @@ export const getTransactionsAPI = async ( params: z.infer<typeof getTransactions
 }
 
 export const transferCryptoAPISchema = z.object( {
-  assetType: z.enum( [ "HBAR", "TOKEN", "NFT" ] ).optional().default( "HBAR" ),
-  to: z.string().describe( "Reciver's account Id" ),
+  network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
+  transfers: z.array(
+    z.object( {
+      assetType: z.enum( [ "HBAR", "TOKEN", "NFT" ] ).optional().default( "HBAR" ),
+      to: z.string().describe( "Reciver's account Id" ),
+      amount: z.number(),
+      assetId: z.string().describe( "Asset Id in case asset type is not HBAR" ).optional(),
+    } )
+  ),
+  memo: z.string().describe( "Optional transaction memo, very important when sending assets to exchanges" ).optional(),
   from: z.string().describe( "Senders account Id, use this incase user specifies a particular account they want to use" ).optional(),
-  amount: z.number(),
-  assetId: z.string().describe( "Asset Id in case asset type is not HBAR" ).optional(),
-  memo: z.string().describe( "Optional transaction memo, very important when sending assets to exchanges" ).optional()
 } )
 
 export const transferCryptoAPI = async ( params: z.infer<typeof transferCryptoAPISchema> ): Promise<HederaAPIsResponse> =>
@@ -96,15 +103,14 @@ export const transferCryptoAPI = async ( params: z.infer<typeof transferCryptoAP
       }
     }
     : {};
-
-  const transfers = [
-    {
-      assetType: params.assetId || "HBAR", // 'HBAR' | 'TOKEN' | 'NFT'
-      to: params.to,
-      amount: params.amount,
-      assetId: params.assetId, // You must pass in a Token ID or NFT Id for transferring tokens 
-    }
-  ]
+  // const transfers = [
+  //   {
+  //     assetType: params.assetId || "HBAR", // 'HBAR' | 'TOKEN' | 'NFT'
+  //     to: params.to,
+  //     amount: params.amount,
+  //     assetId: params.assetId, // You must pass in a Token ID or NFT Id for transferring tokens 
+  //   }
+  // ]
   const memo = params.memo
   try
   {
@@ -113,7 +119,7 @@ export const transferCryptoAPI = async ( params: z.infer<typeof transferCryptoAP
         method: 'transferCrypto',
         params: {
           network: 'testnet',
-          transfers,
+          transfers:params.transfers,
           memo,
           maxFee: undefined,
           /* 
@@ -204,7 +210,7 @@ const transfer_crypto_tool = new DynamicStructuredTool( {
   description: "Sends the assets to the receiver's address from users account. AssetType could be (HBAR|TOKEN|NFT) HBAR is default value, if user wants to send any other asset type they would need to provide the asset id as well.",
   func: async ( params ) =>
   {
-    
+
     const { response, error } = await transferCryptoAPI( params )
     if ( error )
     {

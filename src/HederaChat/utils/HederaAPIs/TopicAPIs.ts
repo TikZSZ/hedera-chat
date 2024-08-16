@@ -3,7 +3,6 @@ import { baseResponseSchema, getExternalAccountParams, getTransformedResponse, H
 import { handleSnapAPIRequest } from "../SnapSDK";
 import { DynamicStructuredTool } from "../aiUtils";
 import { Client, topicMessages } from "@tikz/hedera-mirror-node-ts";
-import { client } from "@/HederaChat/mirror-node";
 
 const createTopicAPISchema = z.object( {
   network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
