@@ -6,8 +6,8 @@ import { accounts, Client, nftUtils, optionalFilters, TokenTypeFilter, tokenUtil
 
 export const getTokenInfoAPISchema = z.object( {
   network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
-  tokenId: z.string().optional().describe( "Will get info about a token" ),
-  accountId: z.string().optional().describe( "Will get info about all tokens held by the accountID" ),
+  tokenId: z.string().optional(),
+  accountId: z.string().optional(),
 } );
 
 export const getTokenInfoAPI = async (
@@ -20,9 +20,9 @@ export const getTokenInfoAPI = async (
     const client = new Client( `https://${params.network}.mirrornode.hedera.com` )
     const Tokens = tokenUtils( client ).Tokens.order( "desc" )
     if ( params.tokenId ) Tokens.setTokenId( params.tokenId )
-    
+
     if ( params.accountId ) Tokens.setAccountId( params.accountId )
-    
+
     const { tokens } = await Tokens.get()
     // const response = { topicMessages: messages }
     return {
@@ -42,7 +42,7 @@ export const getTokenInfoAPI = async (
 
 const get_token_info_tool = new DynamicStructuredTool( {
   name: "get_token_info_tool",
-  description: "Retrieves general info about a token, if no tokenId is specfied but accountId is then all tokens held by the account",
+  description: "Retrieves general info about a tokenID, if no tokenId is specfied but accountId is then info about all tokens held by the account/associated with account",
   func: async ( params ) =>
   {
     const { response, error } = await getTokenInfoAPI( params );
@@ -58,8 +58,8 @@ const get_token_info_tool = new DynamicStructuredTool( {
 
 export const getTokenBalancesAPISchema = z.object( {
   network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
-  tokenId: z.string().describe( "Will return balance for all token holders" ),
-  accountId: z.string().optional().describe( "Will return balances held by this account" ),
+  tokenId: z.string().optional().describe( "" ),
+  accountId: z.string().optional().describe( "" ),
   assetType: z.enum( [ "NFT", "TOKEN" ] ).default( "TOKEN" ).describe( "Must be set for NFTs" ),
   accountBalance: z.object( {
     operator: z.enum( [ 'gt', 'gte', 'lt', 'lte', 'ne', 'eq' ] ),
@@ -76,11 +76,11 @@ export const getTokenBalancesAPI = async (
   try
   {
     const client = new Client( `https://${params.network}.mirrornode.hedera.com` )
-    if ( params.assetType === "TOKEN" )
+    if ( params.assetType === "TOKEN" && params.tokenId )
     {
+      // get info about all token holders 
       const TokenBalance = tokenUtils( client ).TokenBalance.order( "desc" ).setTokenId( params.tokenId )
       if ( params.accountId ) TokenBalance.setAccountId( params.accountId )
-      
       if ( params.accountBalance )
       {
         delete params.accountId
@@ -93,15 +93,40 @@ export const getTokenBalancesAPI = async (
         response: balances,
         error: null
       };
+    } else if ( params.assetType === "NFT" && params.tokenId )
+    {
+      // get info NFT type tokens
+      const NFTs = nftUtils( client ).NFTs.setTokenId( params.tokenId )
+      if ( params.accountId ) NFTs.setAccountId( params.accountId )
+
+      const { nfts } = await NFTs.get()
+      return {
+        response: nfts,
+        error: null
+      };
+    } else if ( params.accountId && !params.tokenId )
+    {
+      const accountBalance = accounts( client ).setAccountId( params.accountId )
+      if ( params.accountBalance )
+      {
+        delete params.accountId
+        const { filter } = translateFilter( params.accountBalance )
+        accountBalance.setBalance( filter )
+      }
+      const { accounts: accountBal } = await accountBalance.get()
+      if(accountBal.length > 0) return {
+        response: accountBal[0].balance,
+        error: null
+      }
+      return {
+        response: null,
+        error: `No accounts found for accountId ${params.accountId}`
+      };
     }
-    const NFTs = nftUtils( client ).NFTs.setTokenId( params.tokenId )
-    if ( params.accountId ) NFTs.setAccountId( params.accountId )
-    
-    const { nfts } = await NFTs.get()
     return {
-      response: nfts,
-      error: null
-    };
+      response: null,
+      error: "Invalid params provided"
+    }
 
   } catch ( err: any )
   {
@@ -114,10 +139,23 @@ export const getTokenBalancesAPI = async (
   }
 };
 
+const TokenBalanceAPIResponseSchema:TransformSchema = {
+  account: "account",
+  alias: "alias",
+  balance: "balance",
+  created_timestamp: "created_timestamp",
+  deleted: "boolean",
+  key: "key",
+  max_automatic_token_associations: "max_automatic_token_associations"
+}
 
 const get_token_balances_tool = new DynamicStructuredTool( {
   name: "get_token_balances_tool",
-  description: "Retrieves List of Token Balances and owners, if account is also specfied then token's balance for that account could be used for both NFTs or Fungible Tokens",
+  description:
+    `1. Retrieves List of Balances and Owners for provided TokenID, 
+  2. If both accountID and tokenId is set then token's balance for that account.
+  3. If only accountID is provided, fetches all tokens owned by accountId could be used for both NFTs or Fungible Tokens
+  `,
   func: async ( params ) =>
   {
     const { response, error } = await getTokenBalancesAPI( params );
@@ -194,68 +232,78 @@ const get_token_balances_tool = new DynamicStructuredTool( {
 // } );
 
 // 3. Get NFT Info Tool
-const getNFTInfoSchema = z.object({
+const getNFTInfoSchema = z.object( {
   network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
-  tokenId: z.string().describe("Token ID of the NFT"),
-  serialNumber: z.number().optional().describe("Serial number of the NFT"),
-  accountId: z.string().optional().describe("Account ID to get owned NFTs"),
-  includeTransactionHistory: z.boolean().default(false).describe("Include transaction history of the NFT"),
-}).refine(data => (data.serialNumber && !data.accountId) || (!data.serialNumber && data.accountId), {
+  tokenId: z.string().describe( "Token ID of the NFT" ),
+  serialNumber: z.number().optional().describe( "Serial number of the NFT" ),
+  accountId: z.string().optional().describe( "Account ID to get owned NFTs" ),
+  includeTransactionHistory: z.boolean().default( false ).describe( "Include transaction history of the NFT" ),
+} ).refine( data => ( data.serialNumber && !data.accountId ) || ( !data.serialNumber && data.accountId ), {
   message: "Provide either serialNumber or accountId, but not both",
-});
+} );
 
-async function getNFTInfoAPI(params: z.infer<typeof getNFTInfoSchema>): Promise<HederaAPIsResponse> {
-  try {
-    const client = new Client(`https://${params.network}.mirrornode.hedera.com`);
+async function getNFTInfoAPI ( params: z.infer<typeof getNFTInfoSchema> ): Promise<HederaAPIsResponse>
+{
+  try
+  {
+    const client = new Client( `https://${params.network}.mirrornode.hedera.com` );
     let response: any = {};
 
-    if (params.accountId) {
+    if ( params.accountId )
+    {
       // First, get the NFTs owned by the account
-      const NFTs = nftUtils(client).NFTs.setTokenId(params.tokenId).setAccountId(params.accountId);
+      const NFTs = nftUtils( client ).NFTs.setTokenId( params.tokenId ).setAccountId( params.accountId );
       const { nfts } = await NFTs.get();
       response.ownedNFTs = nfts;
 
       // If there's only one NFT, use its serial number for further queries
-      if (nfts.length === 1) {
-        params.serialNumber = nfts[0].serial_number;
-      } else {
+      if ( nfts.length === 1 )
+      {
+        params.serialNumber = nfts[ 0 ].serial_number;
+      } else
+      {
         // If multiple NFTs, return the list without further queries
         return { response, error: null };
       }
     }
 
-    if (params.serialNumber) {
-      const NFTInfo = nftUtils(client).NFTInfo.setTokenId(params.tokenId).setSerialNumber(params.serialNumber);
-      if(params.serialNumber && !params.accountId){
+    if ( params.serialNumber )
+    {
+      const NFTInfo = nftUtils( client ).NFTInfo.setTokenId( params.tokenId ).setSerialNumber( params.serialNumber );
+      if ( params.serialNumber && !params.accountId )
+      {
         const nftInfo = await NFTInfo.get();
-        nftInfo.metadata = atob(nftInfo.metadata);
+        nftInfo.metadata = atob( nftInfo.metadata );
         response.nftInfo = nftInfo;
       }
-      if (params.includeTransactionHistory) {
-        const NFTH = nftUtils(client).NFTTransactionHistory.order("desc")
-          .setTokenId(params.tokenId)
-          .setSerialNumber(params.serialNumber);
+      if ( params.includeTransactionHistory )
+      {
+        const NFTH = nftUtils( client ).NFTTransactionHistory.order( "desc" )
+          .setTokenId( params.tokenId )
+          .setSerialNumber( params.serialNumber );
         const { transactions } = await NFTH.get();
         response.transactions = transactions;
       }
     }
 
     return { response, error: null };
-  } catch (err: any) {
-    console.error(err);
-    return { response: null, error: err.message || String(err) };
+  } catch ( err: any )
+  {
+    console.error( err );
+    return { response: null, error: err.message || String( err ) };
   }
 }
 
-const getNFTInfoTool = new DynamicStructuredTool({
+const getNFTInfoTool = new DynamicStructuredTool( {
   name: "get_nft_info",
   description: "Retrieves info about an NFT. Provide either serialNumber for a specific NFT or accountId to get all NFTs owned by an account. Can optionally include transaction history.",
   schema: getNFTInfoSchema,
-  func: async (params) => {
-    const { response, error } = await getNFTInfoAPI(params);
-    return JSON.stringify(error ? { error } : response);
+  func: async ( params ) =>
+  {
+    const { response, error } = await getNFTInfoAPI( params );
+    return JSON.stringify( error ? { error } : response );
   },
-});
+} );
 
 async function test ()
 {
@@ -285,7 +333,7 @@ async function test2 ()
   const accountId = "0.0.6734263"
   const tokenId = "0.0.3872504"
   // console.debug((await accounts(client).setAccountId(accountId).get()),{depth:null} )
-  console.dir(await tokenUtils( client ).Tokens.setAccountId(accountId).get())
+  console.dir( await tokenUtils( client ).Tokens.setAccountId( accountId ).get() )
 
 
   // console.dir(JSON.parse(await get_nft_info_tool.invoke({network:"mainnet",tokenId,serialNumber:337,trackNFT:true})),{depth:null})
