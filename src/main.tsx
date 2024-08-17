@@ -8,6 +8,11 @@ import { ChatSDK, ChatSDKConfig, SnapSDK, tools } from "./HederaChat";
 import { RouterProvider } from "react-router-dom";
 import { router } from "./router.tsx";
 import { AuthProvider } from "./hooks/useAuth.tsx";
+import {
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
 const systemMessage = `You are an AI assistant for managing Hedera DLT accounts, topics, and tokens. Answer user queries about the Hedera network with your best knowledge, noting any limitations. You have tools to assist users as needed.
 
@@ -31,6 +36,7 @@ NFT Handling:
 Before performing query on particular NFT like retrieving info, the model should first call get_token_balances_tool to obtain the correct serial number owned by the user, rather than defaulting to a sequence number of 1.`;
 
 const HashConnectProvider = lazy(() => import("./contexts/hashconnect.tsx"));
+
 const config: ChatSDKConfig = {
   initialOpen: true,
   // customStyles: {
@@ -53,6 +59,7 @@ const config: ChatSDKConfig = {
   tools: tools,
 };
 
+const queryClient = new QueryClient();
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <AuthProvider>
@@ -60,7 +67,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <ChatSDK config={config}>
           <Suspense>
             <HashConnectProvider>
-              <RouterProvider router={router} />
+              <QueryClientProvider client={queryClient}>
+                <RouterProvider router={router} />
+                <ReactQueryDevtools initialIsOpen={false} />
+              </QueryClientProvider>
             </HashConnectProvider>
           </Suspense>
         </ChatSDK>

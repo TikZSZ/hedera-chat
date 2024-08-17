@@ -1,7 +1,8 @@
 import z from "zod";
 import { handleSnapAPIRequest } from "../SnapSDK";
 import { DynamicStructuredTool } from "../aiUtils";
-import { baseResponseSchema, getExternalAccountParams, getTransformedResponse, HederaAPIsResponse, TransformSchema } from "./utils";
+import { baseResponseSchema, getExternalAccountParams, getTransformedResponse, HederaAPIsResponse, transformResponse, TransformSchema } from "./utils";
+import { NavigateFunction } from "react-router-dom";
 
 
 export const getAccountInfoAPISchema = z.object( {
@@ -18,8 +19,8 @@ export const getAccountInfoAPI = async ( params: z.infer<typeof getAccountInfoAP
       request: {
         method: 'getAccountInfo',
         params: {
-          network: 'testnet',
-          mirrorNodeUrl: 'https://testnet.mirrornode.hedera.com',
+          network: params.network,
+          mirrorNodeUrl: `https://${params.network}.mirrornode.hedera.com`,
           // Pass 'accountId' is useful if you want to retrieve account info 
           // for someone else rather than yourself
           accountId: params.accountId,
@@ -119,7 +120,7 @@ export const transferCryptoAPI = async ( params: z.infer<typeof transferCryptoAP
         method: 'transferCrypto',
         params: {
           network: 'testnet',
-          transfers:params.transfers,
+          transfers: params.transfers,
           memo,
           maxFee: undefined,
           /* 
@@ -189,7 +190,7 @@ export const accountInfoSchema: TransformSchema = {
     pendingReward: 'accountInfo.stakingInfo.pendingReward',
     stakedToMe: 'accountInfo.stakingInfo.stakedToMe',
   },
-};
+} as const;
 
 const get_transactions_tool = new DynamicStructuredTool( {
   name: "get_transactions_tool",
@@ -223,7 +224,7 @@ const transfer_crypto_tool = new DynamicStructuredTool( {
 } )
 
 
-const get_account_info_tool = new DynamicStructuredTool( {
+const get_account_info_tool = new DynamicStructuredTool<{navigate:NavigateFunction}>( {
   name: "get_account_info_tool",
   description: "Get info for user's connected account hedera account or for external account. If user provides account id it would be external otherwise connected account id will be used. Returns Users Public Key as well",
   func: async ( params ) =>
@@ -233,9 +234,42 @@ const get_account_info_tool = new DynamicStructuredTool( {
     {
       return JSON.stringify( { error: error } )
     }
-    return getTransformedResponse( response, accountInfoSchema )
+    interface TypedResponse {
+      currentAccount: {
+        hederaAccountId: string;
+        hederaEvmAddress: string;
+        metamaskEvmAddress: string;
+        balance: { hbars: number };
+        network: string;
+      };
+      accountInfo: {
+        alias: string;
+        createdTime: string;
+        memo: string;
+        key: { type: string; key: string };
+        isDeleted: boolean;
+        stakingInfo: {
+          declineStakingReward: boolean;
+          pendingReward: number;
+          stakedToMe: number;
+        };
+      };
+    }
+    const resp = transformResponse(response as TypedResponse,accountInfoSchema)
+    
+    return { content: getTransformedResponse( response, accountInfoSchema ), response }
   },
-  schema: getAccountInfoAPISchema
+  schema: getAccountInfoAPISchema,
+  afterCallback ( result, context )
+  {
+    console.log(result,context,"results saved")
+    // console.log(context?.navigate("/login"))
+    // if(confirm("Resource created do u wann be redircted?")){
+    //   context?.navigate("/login")
+    // }else{
+    //   result.result = result.result
+    // }
+  },
 } )
 
 export const basicTools = [ get_account_info_tool, get_transactions_tool, transfer_crypto_tool ]

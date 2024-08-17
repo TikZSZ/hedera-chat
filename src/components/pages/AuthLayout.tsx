@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { LoaderCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const ProtectedLayout = ({
@@ -10,20 +10,21 @@ const ProtectedLayout = ({
   children: any;
   authentication: boolean;
 }) => {
-  const {user} = useAuth()
+  const {user,loading} = useAuth()
 
   const navigate = useNavigate();
   const [loader, setLoader] = useState(true);
 
   useEffect(() => {
-    if (authentication && user !== null) {
+    if(loading) return 
+    if (authentication && user === null) {
       navigate("/login");
     } else if (!authentication && user !== null) {
       navigate("/");
     }
     setLoader(false);
-  }, [user, authentication, navigate]);
-  return <>{loader ? <LoaderCircle/> : children}</>;
+  }, [user, authentication, navigate,loading]);
+  return <>{loader? <LoaderCircle/> : children} </>
 };
 
 export default ProtectedLayout;

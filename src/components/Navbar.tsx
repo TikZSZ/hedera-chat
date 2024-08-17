@@ -8,7 +8,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Menu, Wallet, Wallet2 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
@@ -42,6 +42,7 @@ const NavItemsContent = ({ isLoading, children }: any) => {
   }
   return children;
 };
+
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
@@ -70,8 +71,8 @@ export const Navbar = () => {
     const cancel = setTimeout(() => {
       const message = getSystemMessage();
       if (message) {
-        if(!accountIds || accountIds.length < 1){
-          return
+        if (!accountIds || accountIds.length < 1) {
+          return;
         }
         const updatedSysMessage = {
           ...message,
@@ -118,9 +119,15 @@ export const Navbar = () => {
         <Button variant="ghost" className="mr-4">
           Docs
         </Button>
-        <Button variant="ghost" className="mr-4">
-          Pricing
-        </Button>
+
+        {user ? (
+          <NavLink to="/dashboard">
+            <Button variant="ghost" className="mr-4">
+              Dashboard
+            </Button>
+          </NavLink>
+        ) : null}
+
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger className="mr-4 md:mr-0" asChild>
@@ -194,10 +201,12 @@ export const Navbar = () => {
   );
 
   return (
-    <header className="p-4 bg-card shadow-md fixed top-0 bg-opacity-10 w-full  z-10">
+    <header className="p-4 bg-card shadow-md top-0 bg-opacity-10 w-full  z-10 border-border border-b">
       <nav className="flex justify-between items-center max-w-6xl mx-auto">
         <Link to="/">
-          <h1 className="text-2xl font-bold">HederaChat</h1>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            HederaChat
+          </h1>
         </Link>
         <div className="flex items-center">
           <div className="relative mr-4">

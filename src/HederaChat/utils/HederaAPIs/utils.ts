@@ -20,42 +20,39 @@
 
 import { optionalFilters } from "@tikz/hedera-mirror-node-ts";
 
-// }
+export type TransformSchema = {
+  [key: string]: string | TransformSchema | ((value: any) => any);
+};
+
 export const baseResponseSchema: TransformSchema = {
   accountId: 'currentAccount.hederaAccountId',
   network: 'currentAccount.network',
   balance: 'currentAccount.balance.hbars',
 }
-export type TransformSchema = {
-  [ key: string ]: string | TransformSchema | ( ( value: any ) => any );
-};
 
-type TransformFunction = ( response: any, schema: TransformSchema ) => any;
 
-export const transformResponse: TransformFunction = ( response, schema ): Record<string, any> =>
-{
+export function transformResponse<S extends TransformSchema>(
+  response: any,
+  schema: S
+): Record<string,any> {
   const result: any = {};
 
-  for ( const key in schema )
-  {
-    const value = schema[ key ];
-    if ( typeof value === 'string' )
-    {
+  for (const key in schema) {
+    const value = schema[key];
+    if (typeof value === 'string') {
       // Direct mapping
-      result[ key ] = value.split( '.' ).reduce( ( acc, part ) => acc && acc[ part ], response );
-    } else if ( typeof value === 'function' )
-    {
+      result[key] = value.split('.').reduce((acc, part) => acc && acc[part], response);
+    } else if (typeof value === 'function') {
       // Custom function
-      result[ key ] = value( response );
-    } else if ( typeof value === 'object' && value !== null )
-    {
+      result[key] = value(response);
+    } else if (typeof value === 'object' && value !== null) {
       // Nested schema
-      result[ key ] = transformResponse( response, value );
+      result[key] = transformResponse(response, value);
     }
   }
 
-  return result;
-};
+  return result as S;
+}
 
 export function getExternalAccountParams ( accountId?: string | null )
 {
@@ -73,7 +70,7 @@ export function getExternalAccountParams ( accountId?: string | null )
 export function getTransformedResponse ( response: Record<string, any> | null, schema: TransformSchema )
 {
   const transformedResp = transformResponse( response, schema )
-  return "```json" + JSON.stringify( transformedResp, null, 4 ) + "`"
+  return "```json" + JSON.stringify( transformedResp, null, 4 ) + " \n ```"
 }
 
 export interface HederaAPIsResponse

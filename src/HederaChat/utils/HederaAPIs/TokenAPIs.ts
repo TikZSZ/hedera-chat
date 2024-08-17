@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { handleSnapAPIRequest } from "../SnapSDK";
 import { DynamicStructuredTool } from "../aiUtils";
-import { baseResponseSchema, getExternalAccountParams, getTransformedResponse, HederaAPIsResponse, TransformSchema } from "./utils";
+import { baseResponseSchema, getExternalAccountParams, getTransformedResponse, HederaAPIsResponse, transformResponse, TransformSchema } from "./utils";
 import { Client, tokenUtils } from "@tikz/hedera-mirror-node-ts";
 
 const accountIdMessage = "Do not provide the account ID if user doesn't specify one, we always have user connected wallet."
@@ -22,7 +22,7 @@ export const createTokenAPISchema = z.object( {
   feeSchedulePublicKey: z.string().optional(),
   freezeDefault: z.boolean().optional(),
   tokenMemo: z.string().optional(),
-  accountId: z.string().describe(accountIdMessage).optional(),
+  accountId: z.string().describe( accountIdMessage ).optional(),
   // customFees: z.array(
   //   z.object( {
   //     feeCollectorAccountId: z.string(),
@@ -47,7 +47,8 @@ export const createTokenAPI = async (
 
   try
   {
-    if(params.assetType === "NFT"){
+    if ( params.assetType === "NFT" )
+    {
       params.decimals = 0
       params.initialSupply = 0
     }
@@ -100,7 +101,7 @@ export const mintTokenAPISchema = z.object( {
   network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
   assetType: z.enum( [ 'TOKEN', 'NFT' ] ).default( 'TOKEN' ),
   tokenId: z.string(),
-  accountId: z.string().describe(accountIdMessage).optional().optional(),
+  accountId: z.string().describe( accountIdMessage ).optional().optional(),
   amount: z.number().describe( "Amount of tokens to mit, should be 0 for NFTs" ).int().optional(),
   metadata: z.array( z.string() ).describe( "No need to pass the metadata for fungible tokens, MUST be passed for NFTs" ).optional(), // Only needed for NFT
 } );
@@ -113,7 +114,8 @@ export const mintTokenAPI = async (
   console.log( params );
   try
   {
-    if(params.assetType === "NFT"){
+    if ( params.assetType === "NFT" )
+    {
       delete params.amount
     }
     const response = await handleSnapAPIRequest( {
@@ -167,7 +169,8 @@ export const burnTokenAPI = async (
 
   try
   {
-    if(params.assetType === "NFT"){
+    if ( params.assetType === "NFT" )
+    {
       delete params.amount
     }
     const response = await handleSnapAPIRequest(
@@ -206,7 +209,7 @@ export const burnTokenAPI = async (
 export const associateTokensAPISchema = z.object( {
   network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
   tokenIds: z.array( z.string() ).min( 1 ).describe( "Array of token IDs to associate with the account" ),
-  accountId: z.string().describe(accountIdMessage).optional(),
+  accountId: z.string().describe( accountIdMessage ).optional(),
 } );
 
 export const associateTokensAPI = async (
@@ -327,7 +330,9 @@ const mint_token_tool = new DynamicStructuredTool( {
   schema: mintTokenAPISchema
 } );
 
-const create_token_tool = new DynamicStructuredTool( {
+export type Token = Omit<z.infer<typeof createTokenAPISchema>, "accountId"> & { ownerAccountId: string, tokenId: string }
+
+const create_token_tool = new DynamicStructuredTool<{ openAlert?: ( name: string, desc: string, content: string ) => string }>( {
   name: "create_hedera_token",
   description: `Creates a new token or NFT on the Hedera network. 
   IMPORTANT: Requires specific key information. If user doesn't provide keys, you must fetch them first using appropriate tools.
@@ -341,9 +346,30 @@ const create_token_tool = new DynamicStructuredTool( {
       console.error( error );
       return JSON.stringify( { error: error } );
     }
-    return getTransformedResponse( response, createTokenResponseSchema );
+    return { content: getTransformedResponse( response, createTokenResponseSchema ), artifact: transformResponse( response, createTokenResponseSchema ) };
   },
-  schema: createTokenAPISchema
+  schema: createTokenAPISchema,
+  afterCallback ( result, input, context )
+  {
+    console.log( result.artifact, input )
+    if ( result.artifact && result.artifact.receipt.tokenId )
+    {
+      const tokenId = result.artifact.receipt.tokenId as string
+      const tokensSTR = localStorage.getItem( "tokens" )
+      const tokens: Token[] = tokensSTR ? JSON.parse( tokensSTR ) : []
+      delete input.accountId
+      const token: Token = {
+        ...input,
+        tokenId: tokenId,
+        ownerAccountId: result.artifact.accountId
+      }
+      tokens.push( token )
+      localStorage.setItem( "tokens", JSON.stringify( tokens ) )
+      if ( context && context.openAlert ) context.openAlert( 
+        `${token.assetType} Created`, `You can view the token in dashboard`,
+        `${token.name} (${token.symbol})\n\n TokenId  *${token.tokenId}*`)
+    }
+  },
 } );
 
 export const TokenTools =
@@ -353,3 +379,17 @@ export const TokenTools =
     associate_tokens_tool,
     burn_token_tool
   ]
+
+
+if ( import.meta.main )
+{
+   create_token_tool.afterCallback!( {
+    content: "", artifact: {
+      ...baseResponseSchema,
+      receipt: {
+        status: 'SUCCESS',
+        tokenId: "0.0.5267"
+      }
+    }
+  }, { assetType: "NFT", decimals: 0, name: "Test Token", symbol: "TT", network: "testnet", supplyPublicKey: "sk___", supplyType: "FINITE" } )
+}

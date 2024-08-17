@@ -1,9 +1,11 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation, useNavigation } from "react-router-dom";
 import { lazy, Suspense, useEffect } from "react";
 
-const Navbar = lazy(()=>import("./components/Navbar"))
+const Navbar = lazy(() => import("./components/Navbar"));
 
 function App() {
+  let location = useLocation();
+
   return (
     <>
       <div className="relative min-h-screen bg-background text-foreground">
@@ -11,11 +13,13 @@ function App() {
           <Navbar />
         </Suspense>
         <Outlet />
-        <footer className="bg-muted py-8">
-          <div className="max-w-6xl mx-auto px-4 text-center text-muted-foreground">
-            © 2024 HederaChat SDK. All rights reserved.
-          </div>
-        </footer>
+        {!location.pathname.includes("dashboard") ? (
+          <footer className="bg-muted py-8">
+            <div className="max-w-6xl mx-auto px-4 text-center text-muted-foreground">
+              © 2024 HederaChat SDK. All rights reserved.
+            </div>
+          </footer>
+        ) : null}
       </div>
     </>
   );

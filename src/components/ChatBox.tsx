@@ -1,39 +1,65 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useChatSDK,useAIChat,Message } from "../HederaChat";
+import { useChatSDK, useAIChat, Message } from "../HederaChat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Paperclip, Minimize, Maximize, X, Loader2 } from "lucide-react";
 import Markdown from "react-markdown";
 import { PrismAsync as SyntaxHighlighter } from "react-syntax-highlighter";
+import { duotoneSpace } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  duotoneSpace,
-} from "react-syntax-highlighter/dist/esm/styles/prism";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Types
-import AutoHideScrollbar from "@/components/AutoHideScrollbar"
-const markdownTheme = duotoneSpace
+import AutoHideScrollbar from "@/components/AutoHideScrollbar";
+import { useNavigate } from "react-router-dom";
+import { AutosizeTextarea } from "./AutoExpandingTextArea";
+const markdownTheme = duotoneSpace;
 
-interface ChatDialogProps{
-  minimzed:boolean
-  fullscreen:boolean
+interface ChatDialogProps {
+  minimzed: boolean;
+  fullscreen: boolean;
 }
 
-export const ChatBox = ({minimzed,fullscreen}:ChatDialogProps) => {
-  const {
-    messages,
-    addMessage,
-    config,
-    isConnected,
-    connect,
-  } = useChatSDK();
+const enableAlertDialog = true;
+export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
+  const { messages, addMessage, config, isConnected, connect } = useChatSDK();
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertContent, setAlertContent] = useState({
+    title: "NFT Created",
+    description: `You can view the token in dashboard`,
+    content:'Catty Cats Coin (CCAT)\n\n TokenId  *0.0.4688223*'
+  });
+  const formButtonRef = useRef<HTMLButtonElement>(null)
+  const openAlert = (title: string, description: string, content: any) => {
+    setAlertContent({ title, description, content });
+    if (enableAlertDialog) {
+      setIsAlertOpen(true);
+    }
+  };
 
+  const closeAlert = () => {
+    setIsAlertOpen(false);
+  };
   const [inputValue, setInputValue] = useState("");
   const [error, setError] = useState<string | null>();
 
   const [isMinimized, setIsMinimized] = useState<boolean>(minimzed);
   const [isFullScreen, setIsFullScreen] = useState<boolean>(fullscreen);
 
-  const {inProgress,error:_} = useAIChat({params:{model:"gpt-4o-mini"}})
+  const { inProgress, error: _ } = useAIChat({
+    params: { model: "gpt-4o-mini" },
+    context: { openAlert },
+  });
 
   const toggleMinimize = useCallback(() => {
     setIsMinimized((prev) => !prev);
@@ -60,7 +86,7 @@ export const ChatBox = ({minimzed,fullscreen}:ChatDialogProps) => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-  
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -70,13 +96,15 @@ export const ChatBox = ({minimzed,fullscreen}:ChatDialogProps) => {
       const newMessage: Message = {
         id: Date.now().toString(),
         type: "user",
-        content:inputValue,
+        content: inputValue,
         isVisible: true,
-        rawChatBody:{ role: "user", content: inputValue }
+        rawChatBody: { role: "user", content: inputValue },
       };
 
       if (!isConnected) {
-        setError("Wallet not connected, HederaChat wont be able to execute transactions!");
+        setError(
+          "Wallet not connected, HederaChat wont be able to execute transactions!"
+        );
         // return;
       }
 
@@ -84,20 +112,24 @@ export const ChatBox = ({minimzed,fullscreen}:ChatDialogProps) => {
       setInputValue("");
     }
   };
-  
+
   return (
     <div
       className={`fixed bottom-4 right-4  ${
-        isMinimized ? "w-11/12 md:w-auto" : isFullScreen ? "z-20 md:w-[95%] w-11/12 h-[95%]" : "md:w-96 md:h-[500px] w-11/12 h-[50%]"
+        isMinimized
+          ? "w-11/12 md:w-auto"
+          : isFullScreen
+          ? "z-20 md:w-[95%] w-11/12 h-[95%]"
+          : "md:w-96 md:h-[500px] w-11/12 h-[50%]"
       } rounded-lg border bg-card text-card-foreground shadow-sm`}
       style={config.customStyles?.chatWindow}
     >
-      <div
-        className={`flex flex-col ${
-          isMinimized ? "h-12" : "h-full"
-        }`}
-      >
-        <div className={`flex justify-between items-center p-4 border-b border-border ${isMinimized && "-mt-2.5 ml-5"}`}>
+      <div className={`flex flex-col ${isMinimized ? "h-12" : "h-full"}`}>
+        <div
+          className={`flex justify-between items-center p-4 border-b border-border ${
+            isMinimized && "-mt-2.5 ml-5"
+          }`}
+        >
           <span className="font-medium">Chat Assistant</span>
           <div>
             {!isMinimized && (
@@ -109,7 +141,12 @@ export const ChatBox = ({minimzed,fullscreen}:ChatDialogProps) => {
                 )}
               </Button>
             )}
-            <Button className={`${isMinimized && "mt-0.5"}`} size="sm" variant="ghost" onClick={toggleMinimize}>
+            <Button
+              className={`${isMinimized && "mt-0.5"}`}
+              size="sm"
+              variant="ghost"
+              onClick={toggleMinimize}
+            >
               {isMinimized ? (
                 <Maximize className="h-4 w-4" />
               ) : (
@@ -125,78 +162,107 @@ export const ChatBox = ({minimzed,fullscreen}:ChatDialogProps) => {
                 {error}
               </div>
             )}
-            
+
             <AutoHideScrollbar
               className="flex-1 overflow-y-auto p-4 space-y-2 chat-messages"
               style={config.customStyles?.messageContainer}
             >
-              {messages.map((message, index) => (
-                message.isVisible && (
-                  <div
-                    key={index}
-                    className={`flex m-auto ${isFullScreen && "w-11/12 md:w-3/4"}`}
-                  >
+              {messages.map(
+                (message, index) =>
+                  message.isVisible && (
                     <div
-                      className={`flex w-full flex-col gap-2 rounded-lg px-3 py-2 text-sm chat-message  ${
-                        message.type === "user"
-                          ? " bg-primary text-primary-foreground"
-                          : "bg-muted"
+                      key={index}
+                      className={`flex m-auto ${
+                        isFullScreen && "w-11/12 md:w-3/4"
                       }`}
-                      style={message.type === "user" ? config.customStyles?.userMessage : config.customStyles?.assistantMessage}
                     >
-                      <Markdown
-                        components={{
-                          //@ts-ignore
-                          code({ node, inline, className, children, ...props }) {
-                            const match = /language-(\w+)/.exec(className || '')
-                            return !inline && match ? (
-                              // @ts-ignore
-                              <SyntaxHighlighter
-                                {...props}
-                                children={String(children).replace(/\n$/, '')}
-                                style={markdownTheme}
-                                language={match[1]}
-                                PreTag="div"
-                              />
-                            ) : (
-                              <code {...props} className={className}>
-                                {children}
-                              </code>
-                            )
-                          },
-                          a({ node, children, href, ...props }) {
-                            return (
-                              <a
-                                href={href}
-                                className="text-muted-foreground hover:text-secondary-foreground underline"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                {...props}
-                              >
-                                {children}
-                              </a>
-                            );
-                          }
-                        }}
-                        className="prose prose-sm max-w-none"
+                      <div
+                        className={`flex w-full flex-col gap-2 rounded-lg px-3 py-2 text-sm chat-message  ${
+                          message.type === "user"
+                            ? " bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}
+                        style={
+                          message.type === "user"
+                            ? config.customStyles?.userMessage
+                            : config.customStyles?.assistantMessage
+                        }
                       >
-                        {message.content}
-                      </Markdown>
+                        <Markdown
+                          components={{
+                            //@ts-ignore
+                            code({
+                              node,
+                              inline,
+                              className,
+                              children,
+                              ...props
+                            }) {
+                              const match = /language-(\w+)/.exec(
+                                className || ""
+                              );
+                              return !inline && match ? (
+                                // @ts-ignore
+                                <SyntaxHighlighter
+                                  {...props}
+                                  children={String(children).replace(/\n$/, "")}
+                                  style={markdownTheme}
+                                  language={match[1]}
+                                  PreTag="div"
+                                />
+                              ) : (
+                                <code {...props} className={className}>
+                                  {children}
+                                </code>
+                              );
+                            },
+                            a({ node, children, href, ...props }) {
+                              return (
+                                <a
+                                  href={href}
+                                  className="text-muted-foreground hover:text-secondary-foreground underline"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  {...props}
+                                >
+                                  {children}
+                                </a>
+                              );
+                            },
+                          }}
+                          className="prose prose-sm max-w-none"
+                        >
+                          {message.content}
+                        </Markdown>
+                      </div>
                     </div>
-                  </div>
-                )
-              ))}
+                  )
+              )}
               <div ref={messagesEndRef} />
             </AutoHideScrollbar>
             <div className="p-4 border-t">
-              <form className="flex w-full items-center space-x-2" onSubmit={(e) => { e.preventDefault(); handleSend(); }}>
-                <Input
+              <form
+                className="flex w-full items-center space-x-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSend();
+                }}
+              >
+                <AutosizeTextarea
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder="Type a message..."
                   className="flex-1"
+                  maxHeight={150}
+                  minHeight={40}
+                  onKeyDown={(e) => {
+                    if(e.key === "Enter" && formButtonRef.current){
+                      e.preventDefault();
+                      formButtonRef.current.click()
+                    }
+                  }}
                 />
-                <Button type="submit" size="icon" disabled={inProgress}>
+                <Button ref={formButtonRef} type="submit" size="icon" disabled={inProgress}>
                   {inProgress ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -211,8 +277,26 @@ export const ChatBox = ({minimzed,fullscreen}:ChatDialogProps) => {
           </>
         )}
       </div>
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent className={`sm:max-w-[425px] transform transition-all duration-300 ease-in-out ${isAlertOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertContent.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertContent.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Markdown>
+            {alertContent.content}
+          </Markdown>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => { closeAlert()}}>
+              Okay
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
 
-export default ChatBox
+export default ChatBox;
