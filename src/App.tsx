@@ -1,5 +1,5 @@
-import { Outlet, useLocation, useNavigation } from "react-router-dom";
-import { lazy, Suspense, useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import { lazy, Suspense } from "react";
 
 const Navbar = lazy(() => import("./components/Navbar"));
 

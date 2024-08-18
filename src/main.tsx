@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import "./scrollbar.css";
-import { ThemeProvider } from "./components/theme-provider.tsx";
+import { ThemeProvider } from "./components/ThemeProvider.tsx";
 import { ChatSDK, ChatSDKConfig, SnapSDK, tools } from "./HederaChat";
 import { RouterProvider } from "react-router-dom";
 import { router } from "./router.tsx";
@@ -26,14 +26,11 @@ const systemMessage = `You are an AI assistant for managing Hedera DLT accounts,
 
 ### Below are some rules you will follow for function calling
 
-The accountId field should be omitted when using the connected account unless an external account is specified.
+User connected accountIDs will be listed at the end of this message, use those when invoking tools that need accountId
 
 Key Retrieval:
 When optional keys like supplyPublicKey, kycPublicKey, freezePublicKey, etc., are not provided by the user, the model should invoke an account info retrieval function to fetch those keys. These are diffrent from accountIds and cant be inferred from connected account, as such you get userAccountPubKeys.
-
-
-NFT Handling:
-Before performing query on particular NFT like retrieving info, the model should first call get_token_balances_tool to obtain the correct serial number owned by the user, rather than defaulting to a sequence number of 1.`;
+`;
 
 const HashConnectProvider = lazy(() => import("./contexts/hashconnect.tsx"));
 
@@ -61,7 +58,7 @@ const config: ChatSDKConfig = {
 
 const queryClient = new QueryClient();
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+  
     <AuthProvider>
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
         <ChatSDK config={config}>
@@ -76,5 +73,5 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         </ChatSDK>
       </ThemeProvider>
     </AuthProvider>
-  </React.StrictMode>
+  
 );

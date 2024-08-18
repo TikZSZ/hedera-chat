@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useChatSDK, useAIChat, Message } from "../HederaChat";
+import { useChatSDK, useAIChat, Message, AIMessageProcessor } from "../HederaChat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Paperclip, Minimize, Maximize, X, Loader2 } from "lucide-react";
@@ -23,12 +23,37 @@ import {
 import AutoHideScrollbar from "@/components/AutoHideScrollbar";
 import { useNavigate } from "react-router-dom";
 import { AutosizeTextarea } from "./AutoExpandingTextArea";
+import { useAuth } from "@/hooks/useAuth";
+import { appwriteService } from "@/appwrite/config";
 const markdownTheme = duotoneSpace;
 
 interface ChatDialogProps {
   minimzed: boolean;
   fullscreen: boolean;
 }
+
+const appwriteMessageProcessor:AIMessageProcessor = async (messages, params) => {
+  try {
+    const execution =await  appwriteService.invokeAIFunction(JSON.stringify({
+      messages: messages.map( m => m.rawChatBody ),
+      ...params
+    } ))
+  
+    if (execution.status === 'completed') {
+      const result = JSON.parse(execution.responseBody);
+      if (result.success) {
+        return result.data;
+      } else {
+        throw new Error(result.error);
+      }
+    } else {
+      throw new Error("Couldn't invoke AI Model");
+    }
+  } catch (error) {
+    console.error('Error calling Appwrite function:', error);
+    throw error;
+  }
+};
 
 const enableAlertDialog = true;
 export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
@@ -37,8 +62,9 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
   const [alertContent, setAlertContent] = useState({
     title: "NFT Created",
     description: `You can view the token in dashboard`,
-    content:'Catty Cats Coin (CCAT)\n\n TokenId  *0.0.4688223*'
+    content:'Catty Cats Coin (CCAT)\n\n TokenId  [0.0.4688223](/dashboard/tokens/0.0.4688223)'
   });
+  const {user} = useAuth()
   const formButtonRef = useRef<HTMLButtonElement>(null)
   const openAlert = (title: string, description: string, content: any) => {
     setAlertContent({ title, description, content });
@@ -56,10 +82,15 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
   const [isMinimized, setIsMinimized] = useState<boolean>(minimzed);
   const [isFullScreen, setIsFullScreen] = useState<boolean>(fullscreen);
 
-  const { inProgress, error: _ } = useAIChat({
+  const { inProgress, error: error2,setContext,context } = useAIChat({
     params: { model: "gpt-4o-mini" },
-    context: { openAlert },
+    context: { openAlert ,user},
+    // messageProcessor:appwriteMessageProcessor
   });
+
+  useEffect(() => {
+    setContext({openAlert,user})
+  },[user])
 
   const toggleMinimize = useCallback(() => {
     setIsMinimized((prev) => !prev);
@@ -157,9 +188,9 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
         </div>
         {!isMinimized && (
           <>
-            {error && (
+            {error || error2 && (
               <div className="bg-destructive text-destructive-foreground p-4 text-center">
-                {error}
+                {error || error2}
               </div>
             )}
 
@@ -190,9 +221,9 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
                       >
                         <Markdown
                           components={{
-                            //@ts-ignore
                             code({
                               node,
+                              // @ts-ignore
                               inline,
                               className,
                               children,
@@ -285,7 +316,21 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
               {alertContent.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <Markdown>
+          <Markdown components={{
+            a({ node, children, href, ...props }) {
+              return (
+                <a
+                  href={href}
+                  className="text-muted-foreground hover:text-secondary-foreground underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  {...props}
+                >
+                  {children}
+                </a>
+              );
+            },
+          }}>
             {alertContent.content}
           </Markdown>
           <AlertDialogFooter>

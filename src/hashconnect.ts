@@ -52,8 +52,8 @@ export const signTransaction = async (
 };
 
 export const executeTransaction = async (
-    accountIdForSigning: AccountId,
-    trans: Transaction
+    trans: Transaction,
+    accountIdForSigning?: AccountId,
 ) =>
 {
     // await hashconnectInitPromise;
@@ -62,6 +62,9 @@ export const executeTransaction = async (
     if ( !accountIds )
     {
         throw new Error( "No connected accounts" );
+    }
+    if(!accountIdForSigning){
+        accountIdForSigning = accountIds[0]
     }
 
     const isAccountIdForSigningPaired = accountIds.some(

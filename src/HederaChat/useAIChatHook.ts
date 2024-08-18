@@ -166,5 +166,5 @@ export const useAIChat = <C> ( config: ChatConfig<C> ) =>
 
 
 
-  return { inProgress, error, setContext };
+  return { inProgress, error, setContext,context };
 };

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "./mode-toggle";
+import { ModeToggle } from "./ToggleMode";
 import {
   Sheet,
   SheetContent,
@@ -46,8 +46,8 @@ const NavItemsContent = ({ isLoading, children }: any) => {
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, logout, isAuthenticated } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, logout, isAuthenticated,loading } = useAuth();
+
 
   const {
     connectToExtension,
@@ -58,14 +58,15 @@ export const Navbar = () => {
     isConnected,
     init,
     hashconnect,
+    pairingData,
     state,
   } = useWallet();
 
   const { getSystemMessage, updateSystemMessage } = useChatSDK();
 
-  // useEffect(() => {
-  //   init();
-  // }, []);
+  useEffect(() => {
+    init();
+  }, []);
 
   useEffect(() => {
     const cancel = setTimeout(() => {
@@ -74,13 +75,21 @@ export const Navbar = () => {
         if (!accountIds || accountIds.length < 1) {
           return;
         }
+
+        let walletContent = `\n\nCurrent Wallet status: ${
+          isConnected ? "Connected" : "Not Connected"
+        }`;
+        isConnected
+          ? (walletContent += `\nConnected Account Ids:\n ${accountIds.join(
+              "\n"
+            )} and the network is ${pairingData?.network}`)
+          : "No Connected Accounts";
+
         const updatedSysMessage = {
           ...message,
           rawChatBody: {
             ...message.rawChatBody,
-            content:
-              message.rawChatBody.content +
-              ` Current user wallet Account Ids ${accountIds}`,
+            content: message.rawChatBody.content + walletContent,
           },
         };
         updateSystemMessage(updatedSysMessage);
@@ -104,7 +113,6 @@ export const Navbar = () => {
   useEffect(() => {
     const checkAuth = async () => {
       await isAuthenticated();
-      setIsLoading(false);
     };
     checkAuth();
   }, [isAuthenticated]);
@@ -114,7 +122,7 @@ export const Navbar = () => {
   };
 
   const NavItems = () => (
-    <NavItemsContent isLoading={isLoading}>
+    <NavItemsContent isLoading={loading}>
       <>
         <Button variant="ghost" className="mr-4">
           Docs

@@ -236,9 +236,9 @@ const getNFTInfoSchema = z.object( {
   network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
   tokenId: z.string().describe( "Token ID of the NFT" ),
   serialNumber: z.number().optional().describe( "Serial number of the NFT" ),
-  accountId: z.string().optional().describe( "Account ID to get owned NFTs" ),
+  accountId: z.string().optional().describe( "Provide account id to get both serial number of NFT and info about the NFT " ),
   includeTransactionHistory: z.boolean().default( false ).describe( "Include transaction history of the NFT" ),
-} ).refine( data => ( data.serialNumber && !data.accountId ) || ( !data.serialNumber && data.accountId ), {
+} ).refine( (data) => ( data.serialNumber && !data.accountId ) || ( !data.serialNumber && data.accountId ), {
   message: "Provide either serialNumber or accountId, but not both",
 } );
 
@@ -270,12 +270,10 @@ async function getNFTInfoAPI ( params: z.infer<typeof getNFTInfoSchema> ): Promi
     if ( params.serialNumber )
     {
       const NFTInfo = nftUtils( client ).NFTInfo.setTokenId( params.tokenId ).setSerialNumber( params.serialNumber );
-      if ( params.serialNumber && !params.accountId )
-      {
-        const nftInfo = await NFTInfo.get();
-        nftInfo.metadata = atob( nftInfo.metadata );
-        response.nftInfo = nftInfo;
-      }
+      const nftInfo = await NFTInfo.get();
+      nftInfo.metadata = atob( nftInfo.metadata );
+      response.nftInfo = nftInfo;
+      
       if ( params.includeTransactionHistory )
       {
         const NFTH = nftUtils( client ).NFTTransactionHistory.order( "desc" )
@@ -296,7 +294,7 @@ async function getNFTInfoAPI ( params: z.infer<typeof getNFTInfoSchema> ): Promi
 
 const getNFTInfoTool = new DynamicStructuredTool( {
   name: "get_nft_info",
-  description: "Retrieves info about an NFT. Provide either serialNumber for a specific NFT or accountId to get all NFTs owned by an account. Can optionally include transaction history.",
+  description: "Retrieves info about an NFT. Provide either serialNumber for a specific NFT or accountId to get all NFTs owned by an account for the tokenID. Can optionally include transaction history.",
   schema: getNFTInfoSchema,
   func: async ( params ) =>
   {

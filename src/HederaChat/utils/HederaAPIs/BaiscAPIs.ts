@@ -3,34 +3,29 @@ import { handleSnapAPIRequest } from "../SnapSDK";
 import { DynamicStructuredTool } from "../aiUtils";
 import { baseResponseSchema, getExternalAccountParams, getTransformedResponse, HederaAPIsResponse, transformResponse, TransformSchema } from "./utils";
 import { NavigateFunction } from "react-router-dom";
-
+import { accounts, Client, transactions } from "@tikz/hedera-mirror-node-ts";
+import { AccountId, TransferTransaction, PublicKey, Status,Hbar,TokenId,NftId } from "@hashgraph/sdk";
+import { executeTransaction } from "@/hashconnect"
 
 export const getAccountInfoAPISchema = z.object( {
   network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
-  accountId: z.string().describe( "User provided account id. If not provided, the connected account will be used." ).optional()
+  accountId: z.string().describe( "User provided account id. If not provided, the connected account will be used." )
 } )
 
 export const getAccountInfoAPI = async ( params: z.infer<typeof getAccountInfoAPISchema> ): Promise<HederaAPIsResponse> =>
 {
-  const externalAccountParams = getExternalAccountParams( params.accountId )
   try
   {
-    const response = await handleSnapAPIRequest( {
-      request: {
-        method: 'getAccountInfo',
-        params: {
-          network: params.network,
-          mirrorNodeUrl: `https://${params.network}.mirrornode.hedera.com`,
-          // Pass 'accountId' is useful if you want to retrieve account info 
-          // for someone else rather than yourself
-          accountId: params.accountId,
-          ...externalAccountParams
-        }
-      }
-    } )
+    const client = new Client( `https://${params.network}.mirrornode.hedera.com` )
+    const { accounts: acc } = await accounts( client ).setAccountId( params.accountId ).get()
+    console.log( acc, params )
+    let response = null
+    let error = null
+    if ( acc.length > 0 ) response = acc[ 0 ]
+    else error = "Couldn't find any account"
     return {
-      response: response,
-      error: null
+      response,
+      error
     }
   } catch ( err: any )
   {
@@ -45,26 +40,28 @@ export const getAccountInfoAPI = async ( params: z.infer<typeof getAccountInfoAP
 
 export const getTransactionsAPISchema = z.object( {
   network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
-  transactionId: z.string().describe( "User provided transaction Id" ).optional(), accountId: z.string().describe( "User provided account id" ).optional().optional()
+  transactionId: z.string().describe( "User provided transaction Id" ).optional(), 
+  accountId: z.string().describe( "User provided account id" ).optional().optional(),
+  limit:z.number().describe("number of results to return").default(5).optional(),
+  result:z.enum(["success","fail"]).describe("Weather to return failed success txns").optional()
 } )
 
 export const getTransactionsAPI = async ( params: z.infer<typeof getTransactionsAPISchema> ): Promise<HederaAPIsResponse> =>
 {
-  const externalAccountParams = getExternalAccountParams( params.accountId )
   try
   {
-    const response = await handleSnapAPIRequest( {
-      request: {
-        method: 'getTransactions',
-        params: {
-          network: 'testnet',
-          transactionId: params.transactionId,
-          ...externalAccountParams
-        }
-      }
-    } )
+    const client = new Client( `https://${params.network}.mirrornode.hedera.com` )
+    const transactionsCursor = transactions( client ).order( "desc" ).setLimit( 5 )
+    if ( params.accountId ) transactionsCursor.setAccountId( params.accountId )
+    if ( params.transactionId ) transactionsCursor.setTransactionId( params.transactionId )
+    if(params.limit) transactionsCursor.setLimit(params.limit)
+    if(params.result) transactionsCursor.setResult(params.result)
+
+    const { transactions: txns } = await transactionsCursor.get()
     return {
-      response: response,
+      response: {
+        transactions: txns
+      },
       error: null
     }
   } catch ( err: any )
@@ -78,82 +75,82 @@ export const getTransactionsAPI = async ( params: z.infer<typeof getTransactions
   }
 }
 
-export const transferCryptoAPISchema = z.object( {
-  network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
+export const transferCryptoAPISchema = z.object({
+  network: z.enum(['testnet', 'mainnet']).default('testnet'),
   transfers: z.array(
-    z.object( {
-      assetType: z.enum( [ "HBAR", "TOKEN", "NFT" ] ).optional().default( "HBAR" ),
-      to: z.string().describe( "Reciver's account Id" ),
+    z.object({
+      assetType: z.enum(["HBAR", "TOKEN", "NFT"]).optional().default("HBAR"),
+      to: z.string().describe("Receiver's account Id"),
       amount: z.number(),
-      assetId: z.string().describe( "Asset Id in case asset type is not HBAR" ).optional(),
-    } )
+      assetId: z.string().describe("Asset Id in case asset type is not HBAR, should be assetId/serialNumber for NFT").optional(),
+    })
   ),
-  memo: z.string().describe( "Optional transaction memo, very important when sending assets to exchanges" ).optional(),
-  from: z.string().describe( "Senders account Id, use this incase user specifies a particular account they want to use" ).optional(),
-} )
+  memo: z.string().describe("Optional transaction memo, very important when sending assets to exchanges").optional(),
+  from: z.string().describe("Sender's account Id, One of connected acountIds"),
+});
 
-export const transferCryptoAPI = async ( params: z.infer<typeof transferCryptoAPISchema> ): Promise<HederaAPIsResponse> =>
-{
+export const transferCryptoAPI = async (params: z.infer<typeof transferCryptoAPISchema>): Promise<HederaAPIsResponse> => {
+  console.log(params);
 
-  console.log( params )
-  const externalAccountParams = params.from
-    ? {
-      externalAccount: {
-        accountIdOrEvmAddress: params.from,
-        curve: 'ED25519'
+  try {
+    const transaction = new TransferTransaction()
+      .setTransactionMemo(params.memo || '');
+
+    for (const transfer of params.transfers) {
+      const toAccountId = AccountId.fromString(transfer.to);
+      const fromAccountId = AccountId.fromString(params.from);
+
+      switch (transfer.assetType) {
+        case 'HBAR':
+          transaction.addHbarTransfer(toAccountId, Hbar.fromTinybars(transfer.amount));
+          transaction.addHbarTransfer(fromAccountId, Hbar.fromTinybars(-transfer.amount));
+          break;
+        case 'TOKEN':
+          if (!transfer.assetId) throw new Error("Asset ID is required for TOKEN transfers");
+          transaction.addTokenTransfer(TokenId.fromString(transfer.assetId), toAccountId, transfer.amount);
+          transaction.addTokenTransfer(TokenId.fromString(transfer.assetId), fromAccountId, -transfer.amount);
+          break;
+        case 'NFT':
+          if (!transfer.assetId) throw new Error("Asset ID is required for NFT transfers");
+          const [tokenId, serialNumber] = transfer.assetId.split('/');
+          if (!serialNumber) throw new Error("Serial number is required for NFT transfers");
+          transaction.addNftTransfer(new NftId(TokenId.fromString(tokenId), Number(serialNumber)), fromAccountId,toAccountId);
+          break;
       }
     }
-    : {};
-  // const transfers = [
-  //   {
-  //     assetType: params.assetId || "HBAR", // 'HBAR' | 'TOKEN' | 'NFT'
-  //     to: params.to,
-  //     amount: params.amount,
-  //     assetId: params.assetId, // You must pass in a Token ID or NFT Id for transferring tokens 
-  //   }
-  // ]
-  const memo = params.memo
-  try
-  {
-    const response = await handleSnapAPIRequest( {
-      request: {
-        method: 'transferCrypto',
-        params: {
-          network: 'testnet',
-          transfers: params.transfers,
-          memo,
-          maxFee: undefined,
-          /* 
-            Uncomment the below line if you want to connect 
-            to a non-metamask account
-          */
-          ...externalAccountParams
+
+    // Get the account ID to use for the transaction
+    const accountId = AccountId.fromString(params.from)
+
+    // Send the transaction to the HashPack wallet for signing
+    const result = await executeTransaction(transaction, accountId);
+
+    if (result.status === Status.Success) {
+      const response = {
+        accountId: accountId.toString(),
+        receipt: {
+          status:result.status.toString()
         }
-      }
-    } )
-    return {
-      response: response,
-      error: null
+      };
+      return { response: response, error: null };
     }
-  } catch ( err: any )
-  {
-    console.error( err );
-    alert( "Error while interacting with the snap: " + err.message || err );
-    return {
-      response: null,
-      error: null
-    }
+    return { response: null, error: `An error occurred after executing transaction ${result.status.toString()}` };
+  } catch (err: any) {
+    console.error(err);
+    return { response: null, error: err.message || err };
   }
-}
-
+};
 
 export const transactionSchema: TransformSchema = {
-  ...baseResponseSchema,
   transactions: ( response: any ) => response.transactions.map( ( tx: any ) => ( {
-    timestamp: tx.consensus_timestamp,
-    transactionHash: tx.transaction_hash,
+    timestamp: new Date(parseInt(tx.consensus_timestamp.split(".")[0])*1000).toString(),
     transactionId: tx.transaction_id,
     result: tx.result,
+    tokenTransfers: tx.token_transfers.map( ( tokenTransfer: any ) => ( {
+      tokenId: tokenTransfer.token_id,
+      account: tokenTransfer.account,
+      amount: tokenTransfer.amount,
+    } ) ),
     transfers: tx.transfers.map( ( transfer: any ) => ( {
       account: transfer.account,
       amount: transfer.amount,
@@ -174,23 +171,23 @@ export const sendCryptoSchema: TransformSchema = {
 };
 
 export const accountInfoSchema: TransformSchema = {
-  accountId: 'currentAccount.hederaAccountId',
-  evmAddress: 'currentAccount.hederaEvmAddress',
-  metamaskEvmAddress: 'currentAccount.metamaskEvmAddress',
-  balance: 'currentAccount.balance.hbars',
+  accountId: 'account',
+  evmAddress: 'evm_address',
+  balance: 'balance.balance',
   network: 'currentAccount.network',
-  accountAlias: 'accountInfo.alias',
-  createdTime: 'accountInfo.createdTime',
-  memo: 'accountInfo.memo',
-  keyType: 'accountInfo.key.type',
-  publicKey: 'accountInfo.key.key',
-  isDeleted: 'accountInfo.isDeleted',
+  accountAlias: 'alias',
+  createdTime: 'created_timestamp',
+  memo: 'memo',
+  keyType: 'key._type',
+  publicKey: 'key.key',
+  isDeleted: 'deleted',
+  maxAutoTokenAssociations: "max_automatic_token_associations",
   stakingInfo: {
-    declineStakingReward: 'accountInfo.stakingInfo.declineStakingReward',
-    pendingReward: 'accountInfo.stakingInfo.pendingReward',
-    stakedToMe: 'accountInfo.stakingInfo.stakedToMe',
+    declineStakingReward: 'decline_reward',
+    pendingReward: 'pending_reward',
   },
-} as const;
+};
+
 
 const get_transactions_tool = new DynamicStructuredTool( {
   name: "get_transactions_tool",
@@ -224,7 +221,7 @@ const transfer_crypto_tool = new DynamicStructuredTool( {
 } )
 
 
-const get_account_info_tool = new DynamicStructuredTool<{navigate:NavigateFunction}>( {
+const get_account_info_tool = new DynamicStructuredTool<{ navigate: NavigateFunction }>( {
   name: "get_account_info_tool",
   description: "Get info for user's connected account hedera account or for external account. If user provides account id it would be external otherwise connected account id will be used. Returns Users Public Key as well",
   func: async ( params ) =>
@@ -234,35 +231,15 @@ const get_account_info_tool = new DynamicStructuredTool<{navigate:NavigateFuncti
     {
       return JSON.stringify( { error: error } )
     }
-    interface TypedResponse {
-      currentAccount: {
-        hederaAccountId: string;
-        hederaEvmAddress: string;
-        metamaskEvmAddress: string;
-        balance: { hbars: number };
-        network: string;
-      };
-      accountInfo: {
-        alias: string;
-        createdTime: string;
-        memo: string;
-        key: { type: string; key: string };
-        isDeleted: boolean;
-        stakingInfo: {
-          declineStakingReward: boolean;
-          pendingReward: number;
-          stakedToMe: number;
-        };
-      };
-    }
-    const resp = transformResponse(response as TypedResponse,accountInfoSchema)
-    
+
+    // const resp = transformResponse( response as TypedResponse, accountInfoSchema )
+    console.log( response )
     return { content: getTransformedResponse( response, accountInfoSchema ), response }
   },
   schema: getAccountInfoAPISchema,
   afterCallback ( result, context )
   {
-    console.log(result,context,"results saved")
+    console.log( result, context, "results saved" )
     // console.log(context?.navigate("/login"))
     // if(confirm("Resource created do u wann be redircted?")){
     //   context?.navigate("/login")

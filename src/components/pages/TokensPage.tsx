@@ -14,26 +14,34 @@ import { Coins, Search, Plus, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { type Token } from "@/HederaChat/utils/HederaAPIs/TokenAPIs";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useWallet } from "@/contexts/hashconnect";
+import { appwriteService } from "@/appwrite/config";
+import { Client, tokenUtils } from "@tikz/hedera-mirror-node-ts";
+import LoadingComponent from "../LoadingComponent";
+import ErrorComponent from "../ErrorComponent";
 
-export const useTokensQuery = () => {
-  return useQuery({
-    queryKey: ["tokens"],
-    queryFn: (): Token[] => {
-      const tokensSTR = localStorage.getItem("tokens");
-      if (tokensSTR) {
-        return JSON.parse(tokensSTR);
-      }
-      return [];
-    },
-  });
-};
 
 const TokenPage = () => {
-  // const [tokens, setTokens] = useState<Token[]>([
-  //   { id: "1", name: "Hedera Token", symbol: "HBAR", balance: 1000 },
-  //   { id: "2", name: "Custom Token", symbol: "CTK", balance: 500 },
-  // ]);
-  const { data: tokens, error, isPending, isError } = useTokensQuery();
+  const {user} = useAuth()
+  const {selectedAccount,isConnected,pairingData} = useWallet()
+
+  const { data: tokens, error, isPending, isError } = useQuery({
+    queryKey: ["tokens",selectedAccount,pairingData?.network],
+    queryFn: async () => {
+      if(!isConnected) throw new Error("Wallet Not Connected")
+      if(!selectedAccount) throw new Error("Wallet connected but no accounts selected")
+      const client = new Client(
+          `https://${pairingData!.network}.mirrornode.hedera.com`
+        );
+      // const docs = await appwriteService.listTokens(selectedAccount!,user!.$id)
+      // if(!docs) return []
+      // return docs.documents as any
+      const tokensCursor = tokenUtils(client)
+      const {tokens} = await tokensCursor.Tokens.setAccountId(selectedAccount).order("desc").get()
+      return tokens 
+    },retry:()=>isConnected
+  });
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredTokens =
@@ -44,9 +52,9 @@ const TokenPage = () => {
         token.symbol.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  if (isPending) return "Loading...";
+    if (isPending) return <LoadingComponent/>;
 
-  if (isError) return "An error has occurred: " + error.message;
+    if (isError) return <ErrorComponent message={error.message} />;
 
   return (
     <div className="space-y-6">
@@ -80,7 +88,7 @@ const TokenPage = () => {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Symbol</TableHead>
-                <TableHead>Balance</TableHead>
+                <TableHead>Token Type</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -88,7 +96,7 @@ const TokenPage = () => {
               {filteredTokens &&
                 filteredTokens.map((token) => (
                   <TableRow
-                    key={token.tokenId}
+                    key={token.token_id}
                     className="hover:bg-muted/50 transition-colors"
                   >
                     <TableCell className="font-medium">{token.name}</TableCell>
@@ -96,14 +104,14 @@ const TokenPage = () => {
                     <TableCell>
                       <div className="flex items-center">
                         <Coins className="mr-2 h-4 w-4 text-muted-foreground" />
-                        {token.assetType}
+                        {token.type}
                       </div>
                     </TableCell>
                     <TableCell>
                       <Link
                         to={{
-                          pathname: `/dashboard/tokens/${token.tokenId}`,
-                          search: `?network=${token.network}`,
+                          pathname: `/dashboard/tokens/${token.token_id}`,
+                          search: `?network=${pairingData?.network || "testnet"}`,
                         }}
                       >
                         <Button

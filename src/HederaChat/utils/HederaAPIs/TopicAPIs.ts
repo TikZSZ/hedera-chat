@@ -3,61 +3,64 @@ import { baseResponseSchema, getExternalAccountParams, getTransformedResponse, H
 import { handleSnapAPIRequest } from "../SnapSDK";
 import { DynamicStructuredTool } from "../aiUtils";
 import { Client, topicMessages } from "@tikz/hedera-mirror-node-ts";
+import { AccountId, TopicUpdateTransaction,TopicId, PublicKey, Status, TopicCreateTransaction,TopicMessageSubmitTransaction} from "@hashgraph/sdk";
+import { executeTransaction } from "@/hashconnect"
 
 const createTopicAPISchema = z.object( {
-  network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
+  // network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
   memo: z.string().optional().describe( "Optional topic memo" ),
   adminKey: z.string().optional().describe( "Optional admin key required to be able to update the topic in the future. " ),
   submitKey: z.string().optional().describe( "Optional submit key, If key is not set topic will be public." ),
   // autoRenewPeriod: z.number().optional().describe("Optional auto-renew period in seconds"),
   // autoRenewAccount: z.string().optional().describe("Optional auto-renew account ID"),
-  accountId: z.string().describe( "Account ID user wants to use for the transaction" ).optional(),
+  accountId: z.string().describe( "One of connected Account Ids" )
 } );
 
-const createTopicAPI = async (
+export const createTopicAPI = async (
   params: z.infer<typeof createTopicAPISchema>
-): Promise<HederaAPIsResponse> =>
-{
+): Promise<HederaAPIsResponse> => {
+  console.log(params);
 
-  const externalAccountParams = getExternalAccountParams( params.accountId );
-  console.log( params );
+  try {
+    const transaction = new TopicCreateTransaction();
 
-  try
-  {
-    const response = await handleSnapAPIRequest( {
-      request: {
-        method: 'hcs/createTopic',
-        params: {
-          network: params.network,
-          memo: params.memo,
-          adminKey: params.adminKey,
-          submitKey: params.submitKey,
-          // autoRenewPeriod: params.autoRenewPeriod,
-          // autoRenewAccount: params.autoRenewAccount,
-          // Uncomment the below line if you want to connect 
-          // to a non-metamask account
-          ...externalAccountParams
+    if (params.memo) {
+      transaction.setTopicMemo(params.memo);
+    }
+
+    if (params.adminKey) {
+      transaction.setAdminKey(PublicKey.fromString(params.adminKey));
+    }
+
+    if (params.submitKey) {
+      transaction.setSubmitKey(PublicKey.fromString(params.submitKey));
+    }
+
+    // Get the account ID to use for the transaction
+    const accountId = AccountId.fromString(params.accountId)
+
+    // Send the transaction to the HashPack wallet for signing
+    const result = await executeTransaction(transaction, accountId);
+
+    if (result.status === Status.Success) {
+      const response = {
+        accountId: accountId.toString(),
+        receipt: {
+          status:result.status.toString(),
+          topicId:result.topicId!.toString()
         }
-      }
-    } );
-    console.debug( response )
-    return {
-      response: response,
-      error: null
-    };
-  } catch ( err: any )
-  {
-    console.error( err );
-    alert( "Error while creating topic: " + err.message || err );
-    return {
-      response: null,
-      error: err.message || err
-    };
+      };
+      return { response: response, error: null };
+    }
+    return { response: null, error: `An error occurred after executing transaction ${result.status.toString()}` };
+  } catch (err: any) {
+    console.error(err);
+    return { response: null, error: err.message || err };
   }
 };
 
 export const updateTopicAPISchema = z.object( {
-  network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
+  // network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
   topicId: z.string().describe( "Topic ID to update" ),
   memo: z.string().optional().describe( "Optional topic memo" ),
   // expirationTime: z.number().optional().describe("Optional expiration time"),
@@ -65,100 +68,91 @@ export const updateTopicAPISchema = z.object( {
   submitKey: z.string().optional().describe( "Optional submit key" ),
   // autoRenewPeriod: z.number().optional().describe("Optional auto-renew period in seconds"),
   // autoRenewAccount: z.string().optional().describe("Optional auto-renew account ID"),
-  adminAccountId: z.string().describe( "Account ID user wants to use for the transaction, should be admin of topic. DO NOT Provide this value if user wants to use default wallet" ).optional(),
+  adminAccountId: z.string().describe( "One of connected accountIds" )
 } );
 
 export const updateTopicAPI = async (
   params: z.infer<typeof updateTopicAPISchema>
-): Promise<HederaAPIsResponse> =>
-{
+): Promise<HederaAPIsResponse> => {
+  console.log(params);
 
-  const externalAccountParams = getExternalAccountParams( params.adminAccountId );
-  console.log( params );
+  try {
+    const transaction = new TopicUpdateTransaction()
+      .setTopicId(TopicId.fromString(params.topicId));
 
-  try
-  {
-    const response = await handleSnapAPIRequest( {
-      request: {
-        method: 'hcs/updateTopic',
-        params: {
-          network: params.network,
-          topicId: params.topicId,
-          memo: params.memo,
-          adminKey: params.adminKey,
-          submitKey: params.submitKey,
-          // expirationTime: params.expirationTime,
-          // autoRenewPeriod: params.autoRenewPeriod,
-          // autoRenewAccount: params.autoRenewAccount,
-          // Uncomment the below line if you want to connect 
-          // to a non-metamask account
-          ...externalAccountParams
+    if (params.memo !== undefined) {
+      transaction.setTopicMemo(params.memo);
+    }
+
+    if (params.adminKey) {
+      transaction.setAdminKey(PublicKey.fromString(params.adminKey));
+    }
+
+    if (params.submitKey) {
+      transaction.setSubmitKey(PublicKey.fromString(params.submitKey));
+    }
+
+    // Get the account ID to use for the transaction
+    const accountId = AccountId.fromString(params.adminAccountId)
+
+    // Send the transaction to the HashPack wallet for signing
+    const result = await executeTransaction(transaction, accountId);
+
+    if (result.status === Status.Success) {
+      const response = {
+        accountId: accountId.toString(),
+        receipt: {
+          status:result.status.toString()
         }
-      }
-    } );
-    console.debug( response )
-
-    return {
-      response: response,
-      error: null
-    };
-  } catch ( err: any )
-  {
-    console.error( err );
-    alert( "Error while updating topic: " + err.message || err );
-    return {
-      response: null,
-      error: err.message || err
-    };
+      };
+      return { response: response, error: null };
+    }
+    return { response: null, error: `An error occurred after executing transaction ${result.status.toString()}` };
+  } catch (err: any) {
+    console.error(err);
+    return { response: null, error: err.message || err };
   }
 };
 
 export const submitTopicMessageAPISchema = z.object( {
-  network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
+  // network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
   topicId: z.string().describe( "Topic ID to submit the message to" ),
   message: z.string().describe( "Message to be submitted" ),
   // maxChunks: z.number().optional().describe("Optional max number of chunks"),
   // chunkSize: z.number().optional().describe("Optional chunk size"),
-  accountId: z.string().describe( "Account ID user wants to use , has to be same as submitKey of topic" ).optional(),
+  accountId: z.string().describe( "One of connected accountIds" )
 } );
 
 export const submitTopicMessageAPI = async (
   params: z.infer<typeof submitTopicMessageAPISchema>
-): Promise<HederaAPIsResponse> =>
-{
+): Promise<HederaAPIsResponse> => {
+  console.log(params);
 
-  const externalAccountParams = getExternalAccountParams( params.accountId );
-  console.log( params );
+  try {
+    const transaction = new TopicMessageSubmitTransaction()
+      .setTopicId(TopicId.fromString(params.topicId))
+      .setMessage(params.message)
 
-  try
-  {
-    const response = await handleSnapAPIRequest( {
-      request: {
-        method: 'hcs/submitMessage',
-        params: {
-          network: params.network,
-          topicId: params.topicId,
-          message: params.message,
-          // Uncomment the below line if you want to connect 
-          // to a non-metamask account
-          ...externalAccountParams
+    // Get the account ID to use for the transaction
+    const accountId = AccountId.fromString(params.accountId)
+
+    // Send the transaction to the HashPack wallet for signing
+    const result = await executeTransaction(transaction, accountId);
+
+    if (result.status === Status.Success) {
+      const response = {
+        accountId: accountId.toString(),
+        receipt: {
+          status:result.status.toString(),
+          topicSequenceNumber:result.topicSequenceNumber
         }
-      }
-    } );
-    console.debug( response )
-
-    return {
-      response: response,
-      error: null
-    };
-  } catch ( err: any )
-  {
-    console.error( err );
-    alert( "Error while submitting message: " + err.message || err );
-    return {
-      response: null,
-      error: err.message || err
-    };
+      };
+      return { response: response, error: null };
+    }
+    return { response: null, error: `An error occurred after executing transaction ${result.status.toString()}` };
+  } catch (err: any) {
+    console.error(err);
+    return { response: null, error: err.message || err };
   }
 };
 
@@ -213,28 +207,7 @@ export const getTopicMessagesAPI = async (
 };
 
 
-const createTopicAPIResponse: TransformSchema = {
-  ...baseResponseSchema,
-  receipt: {
-    status: 'receipt.status',
-    topicId: "receipt.topicId"
-  }
-};
 
-const updateTopicAPIResponse: TransformSchema = {
-  ...baseResponseSchema,
-  receipt: {
-    status: 'receipt.status',
-  }
-};
-
-const topicMessageAPIResponse: TransformSchema = {
-  ...baseResponseSchema,
-  receipt: {
-    status: 'receipt.status',
-    topicSequenceNumber: "receipt.topicSequenceNumber"
-  }
-};
 
 const getTopicMessagesAPIResponse: TransformSchema = {
   topicMessages: ( response ) => ( response[ "topicMessages" ] as [] ).map( ( message: any ) => ( {
@@ -257,7 +230,8 @@ const create_topic_tool = new DynamicStructuredTool( {
       console.error( error );
       return JSON.stringify( { error: error } );
     }
-    return getTransformedResponse( response, createTopicAPIResponse );
+    // return getTransformedResponse( response, createTopicAPIResponse );
+    return ` \`\`\`json\n${JSON.stringify(response)}\n\`\`\``
   },
   schema: createTopicAPISchema
 } );
@@ -273,7 +247,7 @@ const update_topic_tool = new DynamicStructuredTool( {
       console.error( error );
       return JSON.stringify( { error: error } );
     }
-    return getTransformedResponse( response, updateTopicAPIResponse );
+    return ` \`\`\`json\n${JSON.stringify(response)}\n\`\`\``
   },
   schema: updateTopicAPISchema
 } );
@@ -290,7 +264,7 @@ const add_topic_message_tool = new DynamicStructuredTool( {
       console.error( error );
       return JSON.stringify( { error: error } );
     }
-    return getTransformedResponse( response, topicMessageAPIResponse );
+    return ` \`\`\`json\n${JSON.stringify(response)}\n\`\`\``
   },
   schema: submitTopicMessageAPISchema
 } );

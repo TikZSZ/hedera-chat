@@ -8,31 +8,42 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { User, Key, Calendar, Coins } from "lucide-react";
+import { User, Key, Calendar, Coins, ExternalLink } from "lucide-react";
 
 import { useQuery } from "@tanstack/react-query";
 import { Client, Accounts } from "@tikz/hedera-mirror-node-ts";
+import { useWallet } from "@/contexts/hashconnect";
+import { Button } from "../ui/button";
+import { Link } from "react-router-dom";
+import LoadingComponent from "../LoadingComponent";
+import ErrorComponent from "../ErrorComponent";
 
-
-const accountId = "0.0.4653631";
-const network = "testnet";
+// const accountId = "0.0.4653631";
+// const network = "testnet";
 const AccountPage = () => {
-
+  const { selectedAccount, pairingData, isConnected } = useWallet();
+  if (!isConnected) return <ErrorComponent message="Wallet Not Connected" />;
   const {
     data: accountInfo,
     error,
     isPending,
     isError,
   } = useQuery({
-    queryKey: ["Account", accountId],
+    queryKey: ["Account", selectedAccount, pairingData?.network],
     queryFn: async () => {
-      const client = new Client(`https://${network}.mirrornode.hedera.com`);
-      const accountsCursor = Accounts.v1(client);
+      if (!isConnected) throw new Error("Wallet Not Connected");
+      if (!selectedAccount)
+        throw new Error("Wallet connected but no accounts selected");
+      const client = new Client(
+        `https://${pairingData!.network}.mirrornode.hedera.com`
+      );
+      const accountsCursor = Accounts.v1(client).order("desc");
       const { accounts: accs } = await accountsCursor
-        .setAccountId(accountId)
+        .setAccountId(selectedAccount)
         .get();
       return accs[0];
     },
+    staleTime: 60000 ,
   });
 
   const getDate = useCallback(
@@ -45,9 +56,9 @@ const AccountPage = () => {
     [accountInfo]
   );
 
-  if (isPending) return "Loading...";
+  if (isPending) return <LoadingComponent/>;
 
-  if (isError) return "An error has occurred: " + error.message;
+  if (isError) return <ErrorComponent message={error.message} />;
 
   return (
     <div className="space-y-6 ">
@@ -125,6 +136,7 @@ const AccountPage = () => {
               <TableRow>
                 <TableHead>Token ID</TableHead>
                 <TableHead>Balance</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -132,6 +144,20 @@ const AccountPage = () => {
                 <TableRow key={token.token_id}>
                   <TableCell>{token.token_id}</TableCell>
                   <TableCell>{token.balance}</TableCell>
+                  <TableCell><Link
+                       to={{
+                        pathname: `/dashboard/tokens/${token.token_id}`,
+                        search: `?network=${pairingData!.network || "testnet"}&accountId=${selectedAccount}`,
+                      }}
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center"
+                        >
+                          View Details <ExternalLink className="ml-2 h-4 w-4" />
+                        </Button>
+                      </Link></TableCell>
                 </TableRow>
               ))}
             </TableBody>

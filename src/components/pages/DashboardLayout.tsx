@@ -56,11 +56,12 @@ const Sidebar = () => {
   );
 };
 
+
 const DashboardLayout = () => {
   return (
     <div className="flex h-screen bg-background text-foreground">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-8">
+      <main className="flex-1 overflow-y-auto p-8 transition-all duration-300 ease-in-out transform">
         <Outlet />
       </main>
     </div>

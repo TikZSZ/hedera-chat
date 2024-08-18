@@ -36,21 +36,7 @@ const HashConnectContext = createContext<HashConnectContent>({
   isConnected:false
 } as any as HashConnectContent);
 
-const appMetadata: DappMetadata = {
-  name: "dApp Example",
-  description: "An example hedera dApp",
-  icons: ["https://www.hashpack.app/img/logo.svg"],
-  url: "http://localhost:5173",
-};
 
-const projectId = "e49ed79ed340742be3e313a3405f03fc";
-
-// let hashconnect = new HashConnect(
-//   LedgerId.TESTNET,
-//   projectId,
-//   appMetadata,
-//   false
-// );
 
 export default function HashConnectProvider({ children }: PropsWithChildren) {
   const [accountIds, setAccountIds] = useState<string[]>([]);
@@ -103,6 +89,7 @@ export default function HashConnectProvider({ children }: PropsWithChildren) {
     hashconnect.disconnectionEvent.on(() => {
       setPairingData(null);
       setAccountIds([])
+      setSelectedAccount(null)
       setState(HashConnectConnectionState.Disconnected)
     });
 
