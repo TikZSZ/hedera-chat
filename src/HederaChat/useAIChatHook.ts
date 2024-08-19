@@ -21,10 +21,6 @@ const defaultMessageProcessor: AIMessageProcessor = async ( messages, params ) =
     apiKey: import.meta.env.VITE_OPENAI_API_KEY,
     dangerouslyAllowBrowser: true,
   } );
-  // console.log({
-  //   messages: messages.map( m => m.rawChatBody ) as any,
-  //   ...params
-  // } )
   return client.chat.completions.create( {
     messages: messages.map( m => m.rawChatBody ) as any,
     ...params
@@ -118,7 +114,7 @@ export const useAIChat = <C> ( config: ChatConfig<C> ) =>
             const tools_result = await toolsMap[ toolName ].invoke( toolParams, context );
             toolCallsResult.push( {
               role: "tool",
-              content: ` \`\`\`json \n${JSON.stringify( { [toolName]: toolParams } )}\n\`\`\` \n Results: \n ${tools_result.content}`,
+              content: ` \`\`\`json \n${JSON.stringify( { [toolName]: toolParams } )}\n${tools_result.content}`,
               tool_call_id: toolCall.id,
             } );
           } else
@@ -163,8 +159,6 @@ export const useAIChat = <C> ( config: ChatConfig<C> ) =>
       setInProgress( false );
     }
   }, [ messages, addMessage, updateMessage, addMessages, messageProcessor ] );
-
-
 
   return { inProgress, error, setContext,context };
 };

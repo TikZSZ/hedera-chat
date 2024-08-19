@@ -46,8 +46,7 @@ const NavItemsContent = ({ isLoading, children }: any) => {
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, logout, isAuthenticated,loading } = useAuth();
-
+  const { user, logout, isAuthenticated, loading } = useAuth();
 
   const {
     connectToExtension,
@@ -124,12 +123,21 @@ export const Navbar = () => {
   const NavItems = () => (
     <NavItemsContent isLoading={loading}>
       <>
-        <Button variant="ghost" className="mr-4">
-          Docs
-        </Button>
+        <NavLink
+          to="docs"
+          className={({isActive}) =>
+            (isActive ? "text-primary" : "text-primary-foreground")
+          }
+        >
+          <Button variant="ghost" className="mr-4">
+            Docs
+          </Button>
+        </NavLink>
 
         {user ? (
-          <NavLink to="/dashboard">
+          <NavLink to="dashboard" className={({isActive}) =>
+            (isActive ? "text-primary" : "text-primary-foreground")
+          }>
             <Button variant="ghost" className="mr-4">
               Dashboard
             </Button>

@@ -70,7 +70,7 @@ export function getExternalAccountParams ( accountId?: string | null )
 export function getTransformedResponse ( response: Record<string, any> | null, schema: TransformSchema )
 {
   const transformedResp = transformResponse( response, schema )
-  return "```json" + JSON.stringify( transformedResp, null, 4 ) + " \n ```"
+  return JSON.stringify( transformedResp, null, 4 )
 }
 
 export interface HederaAPIsResponse

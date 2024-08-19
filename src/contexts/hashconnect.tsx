@@ -21,6 +21,7 @@ export type HashConnectContent = {
     disconnect: Function,
     init:Function
     isConnected:boolean
+    isLoading:boolean
     // sendTransaction: Function,
 }
 const HashConnectContext = createContext<HashConnectContent>({
@@ -45,7 +46,7 @@ export default function HashConnectProvider({ children }: PropsWithChildren) {
   const [pairingString, setPairingString] = useState<string|undefined>("");
   const [pairingData, setPairingData] =
     useState<SessionData | null>(null);
-
+  const [isLoading,setLoading] = useState(false)
   const [state, setState] = useState(HashConnectConnectionState.Disconnected);
 
 //   useEffect(() => {
@@ -62,6 +63,7 @@ export default function HashConnectProvider({ children }: PropsWithChildren) {
     //register events
     
     //initialize
+    setLoading(true)
     setUpHashConnectEvents();
     await hashconnect.init();
   };
@@ -84,6 +86,7 @@ export default function HashConnectProvider({ children }: PropsWithChildren) {
         setAccountIds(data.accountIds)
         setSelectedAccount(data.accountIds[0])
       }
+      setLoading(false)
     });
 
     hashconnect.disconnectionEvent.on(() => {
@@ -155,7 +158,8 @@ export default function HashConnectProvider({ children }: PropsWithChildren) {
         disconnect,
         isConnected,
         selectedAccount,
-        setSelectedAccount
+        setSelectedAccount,
+        isLoading
         // sendTransaction,
       }}
     >

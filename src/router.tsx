@@ -13,7 +13,7 @@ const DashboardLayout = lazy(() => import("./components/pages/DashboardLayout"))
 const DashboardPage = lazy(() => import("./components/pages/Dashboard"));
 const AccountPage = lazy(() => import("./components/pages/AccountsPage"));
 const TokensPage = lazy(() => import("./components/pages/TokensPage"));
-
+const DocsPage = lazy(() => import("./components/pages/DocsPage"));
 const PageWrapper = ({ children }: { children: React.ReactNode }) => (
   <div className="w-full transition-all duration-300 ease-in-out transform">
     {children}
@@ -89,8 +89,8 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        path: "/about",
-        element: <div>Hello</div>,
+        path: "/docs",
+        element: <DocsPage/>,
       },
     ],
   },

@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { MessageSquare, Code, Zap, Paperclip, Send } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const Markdown = lazy(() => import("react-markdown"));
+const Markdown = lazy(() => import("../MarkdownRenderer"));
 
 // Simple loading component
 // Improved loading components
@@ -50,6 +50,7 @@ const SyntaxHighlighter = lazy(() =>
 );
 
 import { duotoneSpace } from "react-syntax-highlighter/dist/esm/styles/prism";
+
 
 const markdownTheme = duotoneSpace;
 
@@ -124,34 +125,7 @@ const LandingPage = () => {
             </CardHeader>
             <CardContent>
               <Suspense fallback={<MarkdownLoading />}>
-                <Markdown
-                  components={{
-                    code({ node, className, children, ...props }) {
-                      const match = /language-(\w+)/.exec(className || "");
-                      return match ? (
-                        <div>
-                          {/* @ts-ignore */}
-                          <SyntaxHighlighter
-                            style={markdownTheme as any}
-                            language={match[1]}
-                            PreTag="div"
-                            wrapLines={true}
-                            wrapLongLines={true}
-                            {...props}
-                          >
-                            {String(children).replace(/\n$/, "")}
-                          </SyntaxHighlighter>
-                        </div>
-                      ) : (
-                        <code className={className} {...props}>
-                          {children}
-                        </code>
-                      );
-                    },
-                  }}
-                  className="prose prose-invert max-w-none"
-                >
-                  {`\`\`\`typescript
+                <Markdown content={`\`\`\`typescript
 import { HederaChat } from 'hedera-chat-sdk';
 
 const chat = new HederaChat({
@@ -161,7 +135,8 @@ const chat = new HederaChat({
 });
 
 chat.init();
-                `}
+                `}>
+                  
                 </Markdown>
               </Suspense>
             </CardContent>

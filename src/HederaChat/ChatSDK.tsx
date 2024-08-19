@@ -41,7 +41,6 @@ export interface ChatSDKConfig {
   };
   initialOpen?: boolean;
   messages?: Message[];
-  connect: () => Promise<boolean>;
   tools: Tool<any>[];
 }
 
@@ -51,8 +50,6 @@ export interface ChatSDKActions {
   updateMessage: (id: string, updates: Partial<Message>) => void;
   removeMessage: (id: string) => void;
   clearMessages: () => void;
-  setIsConnected: (val: boolean) => void;
-  connect: () => Promise<void>;
   setTools: (tools: Tool<any>[]) => void;
   getSystemMessage:() => Message|null;
   updateSystemMessage:(msg:Message) => void
@@ -61,8 +58,6 @@ export interface ChatSDKActions {
 interface ChatSDKContextType extends ChatSDKActions {
   messages: Message[];
   config: ChatSDKConfig;
-  isConnected: boolean;
-
   tools: Tool<any>[];
 }
 
@@ -125,7 +120,6 @@ export const ChatSDKProvider: React.FC<{
   children: ReactNode;
   config: ChatSDKConfig;
 }> = ({ children, config }) => {
-  const [isConnected, setIsConnected] = useState(false);
   const [tools, setTools] = useState(config.tools);
   const [messages, setMessages] = useState<Message[]>(
     config.messages && config.messages?.length > 0 ? config.messages : []
@@ -175,11 +169,6 @@ export const ChatSDKProvider: React.FC<{
     setMessages([]);
   }, []);
 
-  const connect = useCallback(async () => {
-    const resp = await config.connect();
-    setIsConnected(() => resp);
-  }, []);
-
   const contextValue: ChatSDKContextType = {
     messages,
     addMessage,
@@ -188,9 +177,6 @@ export const ChatSDKProvider: React.FC<{
     clearMessages,
     config,
     addMessages,
-    connect: connect,
-    isConnected,
-    setIsConnected,
     tools,
     setTools,
     getSystemMessage,

@@ -16,6 +16,7 @@ module.exports = {
         "2xl": "1400px",
       },
     },
+    
     extend: {
       colors: {
         border: "hsl(var(--border))",
@@ -76,9 +77,28 @@ module.exports = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            'code::before': {
+              content: '&nbsp;&nbsp;',
+            },
+            'code::after': {
+              content: '&nbsp;&nbsp;',
+            },
+            code: {
+              background: '#ffeff0',
+              wordWrap: 'break-word',
+              boxDecorationBreak: 'clone',
+              padding: '.1rem .3rem .2rem',
+              borderRadius: '.2rem',
+            }
+          },
+        },
+      },
     },
   },
-  plugins: [require("tailwindcss-animate"),require('tailwind-scrollbar')({ nocompatible: true }),
+  plugins: [require("@tailwindcss/typography"),require("tailwindcss-animate"),require('tailwind-scrollbar')({ nocompatible: true }),
     function({ addUtilities }) {
       const newUtilities = {
         '.scrollbar-hide-buttons::-webkit-scrollbar-button': {

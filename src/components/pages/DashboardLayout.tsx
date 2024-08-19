@@ -8,6 +8,8 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "../ui/scroll-area";
+import AutoHideScrollbar from "../AutoHideScrollbar";
 
 const Sidebar = () => {
   const navItems = [
@@ -20,9 +22,7 @@ const Sidebar = () => {
 
   return (
     <div className="flex flex-col h-full w-64 bg-background border-r border-border">
-      <div className="p-3">
-
-      </div>
+      <div className="p-3"></div>
       <nav className="flex-1 px-4">
         <Link
           to="/dashboard"
@@ -56,14 +56,15 @@ const Sidebar = () => {
   );
 };
 
-
 const DashboardLayout = () => {
   return (
-    <div className="flex h-screen bg-background text-foreground">
+    <div className="flex h-screen bg-background text-foreground container">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-8 transition-all duration-300 ease-in-out transform">
-        <Outlet />
-      </main>
+      <AutoHideScrollbar className="flex-1 overflow-y-auto p-8 transition-all duration-300 ease-in-out transform">
+        
+          <Outlet />
+        
+      </AutoHideScrollbar>
     </div>
   );
 };

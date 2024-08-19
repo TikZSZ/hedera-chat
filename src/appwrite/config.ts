@@ -2,14 +2,6 @@ import { Client, Databases, Query, Storage, Models, ID,Functions, ExecutionMetho
 import { conf } from "../conf/conf";
 import { Token } from "@/HederaChat/utils/HederaAPIs/TokenAPIs";
 
-interface PostDocument extends Models.Document
-{
-  title: string,
-  content: string,
-  featuredImage: string,
-  status: string,
-  userId: string
-}
 
 export class Service
 {
@@ -80,7 +72,7 @@ export class Service
   {
     try
     {
-      await this.storage.createFile( this.bucketId, ID.unique(), file )
+      return this.storage.createFile( this.bucketId, ID.unique(), file )
     } catch ( error )
     {
       console.log( "Appwrite service :: uploadFile():: ", error )
@@ -104,8 +96,20 @@ export class Service
     }
   }
 
-  getFilePreview ( fileId: string, ...previewArgs: any[] )
-  {
+  getFileView(fileId:string){
+    try
+    {
+      
+      return this.storage.getFileView(this.bucketId,fileId)
+    } catch ( error )
+    {
+      console.log( "Appwrite service :: getFilePreview():: ", error )
+      return false
+    }
+  }
+    
+
+  getFilePreview ( fileId: string, ...previewArgs: any[] ){
     try
     {
       return this.storage.getFilePreview( this.bucketId, fileId, ...previewArgs ).href

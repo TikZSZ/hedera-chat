@@ -24,7 +24,9 @@ import ErrorComponent from "../ErrorComponent";
 
 const TokenPage = () => {
   const {user} = useAuth()
-  const {selectedAccount,isConnected,pairingData} = useWallet()
+  const {selectedAccount,isConnected,pairingData,isLoading} = useWallet()
+  if (isLoading) return <LoadingComponent/>;
+  if (!isConnected) return <ErrorComponent message="Wallet Not Connected" />;
 
   const { data: tokens, error, isPending, isError } = useQuery({
     queryKey: ["tokens",selectedAccount,pairingData?.network],

@@ -341,7 +341,7 @@ async function test2 ()
 
 if ( import.meta.main )
 {
-  await test2()
+  test2()
 }
 
 export const TokenInfoTools = [ get_token_info_tool, get_token_balances_tool, getNFTInfoTool ] 

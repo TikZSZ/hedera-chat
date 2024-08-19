@@ -21,7 +21,8 @@ import ErrorComponent from "../ErrorComponent";
 // const accountId = "0.0.4653631";
 // const network = "testnet";
 const AccountPage = () => {
-  const { selectedAccount, pairingData, isConnected } = useWallet();
+  const { selectedAccount, pairingData, isConnected,isLoading } = useWallet();
+  if (isLoading) return <LoadingComponent/>;
   if (!isConnected) return <ErrorComponent message="Wallet Not Connected" />;
   const {
     data: accountInfo,
@@ -31,15 +32,12 @@ const AccountPage = () => {
   } = useQuery({
     queryKey: ["Account", selectedAccount, pairingData?.network],
     queryFn: async () => {
-      if (!isConnected) throw new Error("Wallet Not Connected");
-      if (!selectedAccount)
-        throw new Error("Wallet connected but no accounts selected");
       const client = new Client(
         `https://${pairingData!.network}.mirrornode.hedera.com`
       );
       const accountsCursor = Accounts.v1(client).order("desc");
       const { accounts: accs } = await accountsCursor
-        .setAccountId(selectedAccount)
+        .setAccountId(selectedAccount!)
         .get();
       return accs[0];
     },
