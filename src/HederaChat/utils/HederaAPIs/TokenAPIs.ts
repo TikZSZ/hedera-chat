@@ -95,6 +95,9 @@ export const createTokenAPI = async ( params: z.infer<typeof createTokenAPISchem
   } catch ( err: any )
   {
     console.error( err );
+    if(err instanceof Status){
+      return { response: null, error: err.toString() };
+    }
     return { response: null, error: err.message || err };
   }
 };

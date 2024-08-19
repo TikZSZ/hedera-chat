@@ -102,7 +102,7 @@ export const useAIChat = <C> ( config: ChatConfig<C> ) =>
       {
         const { tool_calls } = choice0.message;
         const toolCallsResult = [];
-
+        const toolCallResultsFormatted:string[] = []
 
         for ( const toolCall of tool_calls || [] )
         {
@@ -112,9 +112,10 @@ export const useAIChat = <C> ( config: ChatConfig<C> ) =>
           if ( toolsMap[ toolName ] )
           {
             const tools_result = await toolsMap[ toolName ].invoke( toolParams, context );
+            toolCallResultsFormatted.push(` \`\`\`json \n${JSON.stringify( { [toolName]: toolParams } )}\n${tools_result.content}`)
             toolCallsResult.push( {
               role: "tool",
-              content: ` \`\`\`json \n${JSON.stringify( { [toolName]: toolParams } )}\n${tools_result.content}`,
+              content: tools_result.content,
               tool_call_id: toolCall.id,
             } );
           } else
@@ -134,12 +135,12 @@ export const useAIChat = <C> ( config: ChatConfig<C> ) =>
         } );
 
         addMessages(
-          toolCallsResult.map( ( toolCallResult ) => ( {
+          toolCallsResult.map( ( toolCallResult,index ) => ( {
             id: Date.now().toString(),
             type: "tool",
             rawChatBody: toolCallResult,
             isVisible: true,
-            content: toolCallResult.content,
+            content: toolCallResultsFormatted[index],
           } ) )
         );
       } else
