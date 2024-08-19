@@ -4,5 +4,6 @@ export const conf = {
   appwrtieDBId:String(import.meta.env["VITE_APPWRITE_DATABASE_ID"]),
   appwriteCollectionId:String(import.meta.env["VITE_APPWRITE_COLLECTION_ID"]),
   appwriteBucketId:String(import.meta.env["VITE_APPWRITE_BUCKET_ID"]),
-  appwriteFunctionId:String(import.meta.env["VITE_APPWRITE_FUNCTION_ID"])
+  appwriteFunctionId:String(import.meta.env["VITE_APPWRITE_FUNCTION_ID"]),
+  rapidAPIKey:String(import.meta.env["VITE_RAPID_API_KEY"])
 }

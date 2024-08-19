@@ -55,11 +55,35 @@ import { useAuth } from "@/hooks/useAuth";
 import { appwriteService } from "@/appwrite/config";
 import { useWallet } from "@/contexts/hashconnect";
 import MarkdownRenderer from "./MarkdownRenderer";
+import { conf } from "@/conf/conf";
 const markdownTheme = duotoneSpace;
 
 interface ChatDialogProps {
   minimzed: boolean;
   fullscreen: boolean;
+}
+
+async function shortenURL(url: string) {
+  const hostURL = 'https://url-shortener-service.p.rapidapi.com/shorten';
+  const data = new FormData();
+  data.append('url', url);
+
+  const options = {
+    method: 'POST',
+    headers: {
+      'x-rapidapi-key': conf.rapidAPIKey,
+      'x-rapidapi-host': 'url-shortener-service.p.rapidapi.com'
+    },
+    body: data
+  };
+
+  try {
+    const response = await fetch(hostURL, options);
+    const { result_url } = await response.json();
+    return result_url as string
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 const appwriteMessageProcessor: AIMessageProcessor = async (
@@ -100,12 +124,17 @@ const enableAlertDialog = true;
 export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
   const { messages, addMessage, config } = useChatSDK();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [showUploadedFiles, setShowUploadedFiles] = useState(false);
-  const { connectToExtension, isConnected } = useWallet();
+  const { connectToExtension, isConnected,isLoading } = useWallet();
   const { user } = useAuth();
+  const [inputValue, setInputValue] = useState("");
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  
+  const [error, setError] = useState<string | null>();
 
+  const [isMinimized, setIsMinimized] = useState<boolean>(minimzed);
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(fullscreen);
   const [alertContent, setAlertContent] = useState({
     title: "NFT Created",
     description: `You can view the token in dashboard`,
@@ -123,11 +152,7 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
   const closeAlert = () => {
     setIsAlertOpen(false);
   };
-  const [inputValue, setInputValue] = useState("");
-  const [error, setError] = useState<string | null>();
-
-  const [isMinimized, setIsMinimized] = useState<boolean>(minimzed);
-  const [isFullScreen, setIsFullScreen] = useState<boolean>(fullscreen);
+  
 
   const {
     inProgress,
@@ -155,9 +180,10 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
           const response = await appwriteService.uploadFile(file);
           if (response) {
             const fileUrl = appwriteService.getFileView(response.$id) as URL;
+            const shortendURL = await shortenURL(fileUrl.href)
             return {
               name: file.name,
-              url: fileUrl.href,
+              url: shortendURL,
               type: file.type,
             } as UploadedFile;
           }
@@ -407,7 +433,7 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
               <Button
                 ref={formButtonRef}
                 onClick={handleSend}
-                disabled={inProgress || isUploading}
+                disabled={inProgress || isUploading || isLoading}
               >
                 {inProgress || isUploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
