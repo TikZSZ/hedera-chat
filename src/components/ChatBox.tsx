@@ -137,7 +137,7 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
   } = useAIChat({
     params: { model: "gpt-4o-mini" },
     context: { openAlert, user },
-    // messageProcessor:appwriteMessageProcessor
+    messageProcessor:import.meta.env.DEV ? appwriteMessageProcessor:undefined
   });
 
   const removeFile = (index: number) => {
