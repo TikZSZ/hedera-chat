@@ -2,7 +2,7 @@ import { z } from "zod";
 import { DynamicStructuredTool } from "../aiUtils";
 import { getTransformedResponse, HederaAPIsResponse, TransformSchema, translateFilter } from "./utils";
 import { accounts, Client, nftUtils, optionalFilters, TokenTypeFilter, tokenUtils } from "@tikz/hedera-mirror-node-ts";
-
+import {TOKEN,NFT} from "./TokenAPIs"
 
 export const getTokenInfoAPISchema = z.object( {
   network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
@@ -60,7 +60,7 @@ export const getTokenBalancesAPISchema = z.object( {
   network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
   tokenId: z.string().optional().describe( "" ),
   accountId: z.string().optional().describe( "" ),
-  assetType: z.enum( [ "NFT", "TOKEN" ] ).default( "TOKEN" ).describe( "Must be set for NFTs" ),
+  assetType: z.enum( [ TOKEN, NFT ] ).default( TOKEN ).describe( "Must be set for NFTs" ),
   accountBalance: z.object( {
     operator: z.enum( [ 'gt', 'gte', 'lt', 'lte', 'ne', 'eq' ] ),
     value: z.union( [ z.string(), z.number() ] ),
@@ -76,7 +76,7 @@ export const getTokenBalancesAPI = async (
   try
   {
     const client = new Client( `https://${params.network}.mirrornode.hedera.com` )
-    if ( params.assetType === "TOKEN" && params.tokenId )
+    if ( params.assetType === TOKEN && params.tokenId )
     {
       // get info about all token holders 
       const TokenBalance = tokenUtils( client ).TokenBalance.order( "desc" ).setTokenId( params.tokenId )
@@ -93,7 +93,7 @@ export const getTokenBalancesAPI = async (
         response: balances,
         error: null
       };
-    } else if ( params.assetType === "NFT" && params.tokenId )
+    } else if ( params.assetType === NFT && params.tokenId )
     {
       // get info NFT type tokens
       const NFTs = nftUtils( client ).NFTs.setTokenId( params.tokenId )
@@ -294,7 +294,7 @@ async function getNFTInfoAPI ( params: z.infer<typeof getNFTInfoSchema> ): Promi
 
 const getNFTInfoTool = new DynamicStructuredTool( {
   name: "get_nft_info",
-  description: "Retrieves info about an NFT. Provide either serialNumber for a specific NFT or accountId to get all NFTs owned by an account for the tokenID. Can optionally include transaction history.",
+  description: "Retrieves info about an NFT (NON_FUNGIBLE). Provide either serialNumber for a specific NFT or accountId to get all NFTs owned by an account for the tokenID. Can optionally include transaction history.",
   schema: getNFTInfoSchema,
   func: async ( params ) =>
   {

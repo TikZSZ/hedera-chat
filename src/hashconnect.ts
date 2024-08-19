@@ -2,13 +2,13 @@ import  { AccountId, Transaction,LedgerId } from "@hashgraph/sdk";
 import { type DappMetadata,HashConnect } from "hashconnect";
 
 const appMetadata: DappMetadata = {
-    name: "dApp Example",
-    description: "An example hedera dApp",
+    name: "Hedera-Proj",
+    description: "Hedera Chat",
     icons: [ "https://www.hashpack.app/img/logo.svg" ],
-    url: import.meta.env["DEV"] ?"http://localhost:5173":"https://precise-jaguar-properly.ngrok-free.app/",
+    url: import.meta.env["DEV"] ?"http://localhost:5173":"https://hedera-ai.vercel.app",
 };
 
-const projectId = "e49ed79ed340742be3e313a3405f03fc";
+const projectId = "3c0043ed9575b3f4d4095e94c5f1c7ca";
 
 export let hashconnect = new HashConnect(
     LedgerId.TESTNET,
