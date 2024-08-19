@@ -121,7 +121,7 @@ export const createTokenAPI = async ( params: z.infer<typeof createTokenAPISchem
       .setSupplyType( params.supplyType === 'FINITE' ? TokenSupplyType.Finite : TokenSupplyType.Infinite );
 
     // if ( params.metadata ) transaction.setMetadata( stringToUtf8Array( params.metadata ) )
-    // if ( params.adminPublicKey ) transaction.setAdminKey( PublicKey.fromString( params.adminPublicKey ) )
+    if ( params.supplyPublicKey ) transaction.setAdminKey( PublicKey.fromString( params.supplyPublicKey ) )
     if ( params.kycPublicKey ) transaction.setKycKey( PublicKey.fromString( params.kycPublicKey ) );
     if ( params.freezePublicKey ) transaction.setFreezeKey( PublicKey.fromString( params.freezePublicKey ) );
     if ( params.pausePublicKey ) transaction.setPauseKey( PublicKey.fromString( params.pausePublicKey ) );
@@ -144,6 +144,7 @@ export const createTokenAPI = async ( params: z.infer<typeof createTokenAPISchem
       }
       return { response: response, error: null };
     }
+    console.error(result)
     return { response: null, error: `An error occured after executing transaction ${result.status.toString()}` };
   } catch ( err: any )
   {
