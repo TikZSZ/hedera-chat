@@ -99,7 +99,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const enableAlertDialog = true;
 export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
   const { messages, addMessage, config } = useChatSDK();
-  const [isAlertOpen, setIsAlertOpen] = useState(true);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [showUploadedFiles, setShowUploadedFiles] = useState(false);
@@ -137,7 +137,9 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
   } = useAIChat({
     params: { model: "gpt-4o-mini" },
     context: { openAlert, user },
-    messageProcessor:import.meta.env.DEV ? appwriteMessageProcessor:undefined
+    messageProcessor: !import.meta.env.DEV
+      ? appwriteMessageProcessor
+      : undefined,
   });
 
   const removeFile = (index: number) => {
@@ -329,7 +331,12 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
                 </CollapsibleContent>
               </Collapsible>
             )}
-
+            {
+            (error || error2) && (
+              <div className="bg-destructive text-destructive-foreground p-4 text-center">
+                {error2 ? error2:error}
+              </div>
+            )}
             <AutoHideScrollbar
               className="flex-1 overflow-y-auto p-4 space-y-2 chat-messages"
               style={config.customStyles?.messageContainer}

@@ -8,7 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@hashgraph":path.resolve(__dirname,"node_modules/hashconnect/node_modules/@hashgraph")
+      // "@hashgraph":path.resolve(__dirname,"./node_modules/hashconnect/node_modules/@hashgraph")
     },
   },
   build:{

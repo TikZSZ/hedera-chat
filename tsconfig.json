@@ -11,8 +11,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@hashgraph/*": ["./node_modules/hashconnect/node_modules/@hashgraph/*"]
+      "@/*": ["/src/*"],
+      // "@hashgraph/*": ["/node_modules/hashconnect/node_modules/@hashgraph/*"]
     }
   }
 }
