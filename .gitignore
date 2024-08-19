@@ -24,3 +24,4 @@ hedera-proj
 *.sln
 *.sw?
 prompts.txt
+.env
