@@ -22,6 +22,7 @@ const ChatBoxLoading = () => (
     </div>
   </div>
 );
+
 const ChatBox = lazy(() => import("@/components/ChatBox"));
 function App() {
   let location = useLocation();

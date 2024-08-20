@@ -2,7 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, duotoneSpace } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import Markdown from 'react-markdown';
-
+import 'katex/dist/katex.min.css';
+import { InlineMath, BlockMath } from 'react-katex';
+import rehypeKatex from 'rehype-katex';
+import remarkMath from 'remark-math';
 interface MarkdownRendererProps {
   content: string;
   style?: { [key: string]: React.CSSProperties };
@@ -66,6 +69,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, style, com
   return (
     <div ref={containerRef}>
       <Markdown
+      remarkPlugins={[remarkMath]}
+      rehypePlugins={[rehypeKatex]}
         components={{
           // @ts-ignore
           code({ node, inline, className, children, ...props }) {
@@ -78,6 +83,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, style, com
                 language={match[1]}
                 PreTag="div"
                 className="!text-current"
+                wrapLines={true}
+                wrapLongLines={true}
               >
                 {String(children).replace(/\n$/, "")}
               </SyntaxHighlighter>
@@ -111,6 +118,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, style, com
           strong: ({ children }) => <strong className="!text-primary">{children}</strong>,
           // Allow custom overrides
           ...components,
+          math: ({ value }) => <BlockMath math={value} />,
+          inlineMath: ({ value }) => <InlineMath math={value} />,
         }}
         className="prose prose-sm max-w-none !text-current"
       >

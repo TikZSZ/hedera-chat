@@ -144,7 +144,7 @@ export const ChatSDKProvider: React.FC<{
       return messages[0]
     }
     return null
-  }, []);
+  }, [messages]);
 
   const updateSystemMessage = useCallback((message: Message) => {
     if (messages[0].type === "system") {
@@ -153,7 +153,7 @@ export const ChatSDKProvider: React.FC<{
         ...messages.slice(1),
       ]);
     }
-  }, []);
+  }, [messages]);
 
   const updateMessage = useCallback((id: string, updates: Partial<Message>) => {
     setMessages((prevMessages) =>

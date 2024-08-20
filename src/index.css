@@ -63,14 +63,14 @@
 
 .chat-message{
   word-break: break-word !important;
-  overflow-wrap: break-word !important;
-  white-space : pre-wrap !important;
+  /* overflow-wrap: break-word !important;
+  white-space : pre-wrap !important; */
 }
-.prose code { /* Or the appropriate selector for your Markdown output */
+/* .prose code {
   word-break: break-word !important;
   overflow-wrap: break-word !important;
   white-space : pre-wrap !important;
-}
+} */
 
 
 @layer base {

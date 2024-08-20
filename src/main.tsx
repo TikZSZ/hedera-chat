@@ -21,7 +21,9 @@ You have tools to to take actions on behalf of users as needed.
 
         - Account IDs follow the format xx.xx.xx.
         - The native currency is HBAR (hbar).
+        - 1 HBAR is equal to 10^8 tinybars. HBAR balances are generally represented in tinybars, you must tell the correct value based on if they want to their balances in HBARS or Tinybars
         - For queries like "1 HBAR to 0.0.567," understand it as sending 1 HBAR to account 0.0.567.
+        - Current USD to HBAR rate is:
         - There are two typs of Tokens in hedera, FUNGIBLE (also known as TOKEN dont get confused here) and NON_FUNGIBLE (NFT Tokens), TOKEN a subtype of Token and sometimes is used interchangebly.
         - IF user asks for creating token, it will mostly mean FUNGIBLEs until and unless they want mint unique items or NFTs is specfied, if confused ask user. 
         Account ID Handling:
@@ -61,22 +63,20 @@ const config: ChatSDKConfig = {
 
 const queryClient = new QueryClient();
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <AuthProvider>
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <HashConnectProvider>
-          <ChatSDK config={config}>
-            <ChatStateProvider>
-              <Suspense>
-                <QueryClientProvider client={queryClient}>
-                  <RouterProvider router={router} />
-                  <ReactQueryDevtools initialIsOpen={false} />
-                </QueryClientProvider>
-              </Suspense>
-            </ChatStateProvider>
-          </ChatSDK>
-        </HashConnectProvider>
-      </ThemeProvider>
-    </AuthProvider>
-  </React.StrictMode>
+  <AuthProvider>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <HashConnectProvider>
+        <ChatSDK config={config}>
+          <ChatStateProvider>
+            <Suspense>
+              <QueryClientProvider client={queryClient}>
+                <RouterProvider router={router} />
+                <ReactQueryDevtools initialIsOpen={false} />
+              </QueryClientProvider>
+            </Suspense>
+          </ChatStateProvider>
+        </ChatSDK>
+      </HashConnectProvider>
+    </ThemeProvider>
+  </AuthProvider>
 );

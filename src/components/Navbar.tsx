@@ -42,7 +42,21 @@ const NavItemsContent = ({ isLoading, children }: any) => {
   }
   return children;
 };
+async function HBARToUSD() {
+  const hostURL = "https://api.coingecko.com/api/v3/simple/price?ids=hedera-hashgraph&vs_currencies=usd";
 
+  const options = {
+    method: "GET",
+  };
+
+  try {
+    const response = await fetch(hostURL, options);
+    const data = await response.json();
+    return data["hedera-hashgraph"]["usd"]
+  } catch (error) {
+    console.error(error);
+  }
+}
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
@@ -65,6 +79,21 @@ export const Navbar = () => {
 
   useEffect(() => {
     init();
+    HBARToUSD().then((result) =>{
+      const message = getSystemMessage();
+      // @ts-ignore
+      if(message){
+        const updatedSysMessage = {
+          ...message,
+          rawChatBody: {
+            ...message.rawChatBody,
+            content: message.rawChatBody.content!.replace(`- Current USD to HBAR rate is:`,`- Current HBAR to USD rate is: ${result.toString()}`) ,
+          },
+        };
+        updateSystemMessage(updatedSysMessage);
+      }
+      
+    })
   }, []);
 
   useEffect(() => {
