@@ -16,18 +16,24 @@ type ChatContextType = {
   isUploading: boolean;
   showUploadedFiles:boolean;
   setShowUploadedFiles:React.Dispatch<React.SetStateAction<boolean>>;
+  isMinimized:boolean;
+  setIsMinimized:React.Dispatch<React.SetStateAction<boolean>>;
+  isFullScreen:boolean;
+  setIsFullScreen:React.Dispatch<React.SetStateAction<boolean>>;
+
 };
 
 // Create context
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 // Provider component
-export const ChatStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ChatStateProvider: React.FC<{ children: React.ReactNode,minimzed:boolean,fullscreen:boolean }> = ({ children ,minimzed,fullscreen}) => {
   const [inputValue, setInputValue] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [showUploadedFiles, setShowUploadedFiles] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-
+  const [isMinimized, setIsMinimized] = useState<boolean>(minimzed ||true);
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(fullscreen ||false);
 
   return (
     <ChatContext.Provider
@@ -39,7 +45,11 @@ export const ChatStateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setIsUploading,
         setUploadedFiles,
         showUploadedFiles,
-        setShowUploadedFiles
+        setShowUploadedFiles,
+        isMinimized,
+        setIsMinimized,
+        isFullScreen,
+        setIsFullScreen
       }}
     >
       {children}

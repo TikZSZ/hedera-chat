@@ -20,13 +20,17 @@ import { appwriteService } from "@/appwrite/config";
 import { Client, tokenUtils } from "@tikz/hedera-mirror-node-ts";
 import LoadingComponent from "../LoadingComponent";
 import ErrorComponent from "../ErrorComponent";
+import { useChatState } from "@/contexts/useChatState";
+import { useChatSDK } from "@/HederaChat";
 
 
 const TokenPage = () => {
   const {user} = useAuth()
   const {selectedAccount,isConnected,pairingData,isLoading} = useWallet()
-  if (isLoading) return <LoadingComponent/>;
+  const { setInputValue, setIsMinimized } = useChatState();
+  const {addMessage} = useChatSDK()
   if (!isConnected) return <ErrorComponent message="Wallet Not Connected" />;
+  if (isLoading) return <LoadingComponent/>;
 
   const { data: tokens, error, isPending, isError } = useQuery({
     queryKey: ["tokens",selectedAccount,pairingData?.network],
@@ -57,13 +61,23 @@ const TokenPage = () => {
     if (isPending) return <LoadingComponent/>;
 
     if (isError) return <ErrorComponent message={error.message} />;
-
+// "Create a new token (NFT) for housing warranties, user will mint nfts under it to issue a warranty to their customers, as such for this use case a wipeKey, freezeKey and pauseKey might be required, explain the user what these do and ask if they want to specify any of them and also if they would like to cap how many warranties they can mint under this token or not"}
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Tokens</h1>
-        <Button className="flex items-center">
-          <Plus className="mr-2 h-4 w-4" /> Create New Token
+        <Button className="flex items-center" onClick={()=>{
+          addMessage({
+            id:new Date().toString(),
+            content:"",
+            isVisible:false,
+            type:"system",
+            rawChatBody:{role:"system",content:"You are an AI assitant that helps users manage their shop warranties that are issued as NFTs, housed under a token for the shop, user will mint nfts under it to issue a warranty to their customers, as such for this use case a wipeKey, freezeKey and pauseKey might be required, explain the user what these do and ask if they want to specify any of them and also if they would like to cap how many warranties they can mint under this token or not. Confirm the name and symbol for shoft nft"}
+          })
+          setInputValue("Create new Shop token")
+          setIsMinimized(false)
+        }}>
+          <Plus className="mr-2 h-4 w-4" /> Create A Shop
         </Button>
       </div>
 

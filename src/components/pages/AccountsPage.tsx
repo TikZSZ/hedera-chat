@@ -22,8 +22,8 @@ import ErrorComponent from "../ErrorComponent";
 // const network = "testnet";
 const AccountPage = () => {
   const { selectedAccount, pairingData, isConnected,isLoading } = useWallet();
-  if (isLoading) return <LoadingComponent/>;
   if (!isConnected) return <ErrorComponent message="Wallet Not Connected" />;
+  if (isLoading) return <LoadingComponent/>;
   const {
     data: accountInfo,
     error,
@@ -39,7 +39,8 @@ const AccountPage = () => {
       const { accounts: accs } = await accountsCursor
         .setAccountId(selectedAccount!)
         .get();
-      return accs[0];
+        if (accs.length > 0) return accs[0]
+        return null
     },
     staleTime: 60000 ,
   });
@@ -57,6 +58,8 @@ const AccountPage = () => {
   if (isPending) return <LoadingComponent/>;
 
   if (isError) return <ErrorComponent message={error.message} />;
+  if (!accountInfo) return <ErrorComponent message="No account found" />;
+
 
   return (
     <div className="space-y-6 ">

@@ -13,7 +13,7 @@ const accountIdMessage = "One of user connected accounts"
 export const TOKEN = "FUNGIBLE"
 export const NFT = "NON_FUNGIBLE"
 export const createTokenAPISchema = z.object( {
-  network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ).describe("Used to identify where token belongs to"),
+  // network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ).describe("Used to identify where token belongs to"),
   assetType: z.enum( [ TOKEN, NFT ] ),
   name: z.string().max( 100 ).describe( "Name of token" ),
   symbol: z.string().max( 100 ).describe( "Token Symbol" ),
@@ -349,12 +349,14 @@ const mint_token_tool = new DynamicStructuredTool( {
 
 export type Token = Omit<z.infer<typeof createTokenAPISchema>, "accountId"> & { ownerAccountId: string, tokenId: string }
 
-const create_token_tool = new DynamicStructuredTool<{ openAlert?: ( name: string, desc: string, content: string ) => string, user: Models.User<Models.Preferences> }>( {
+const create_token_tool = new DynamicStructuredTool<{ openAlert?: ( name: string, desc: string, content: string ) => string, user: Models.User<Models.Preferences>,network:string }>( {
   name: "create_hedera_token",
   description: `Creates a new token FUNGIBLE or NONFUNGIBLE on the Hedera network. 
   IMPORTANT: Requires specific key information. If user doesn't provide keys, you must fetch them first using appropriate tools.
   Always provide supplyPublicKey - fetch user's public key if not given.
-  Ask user about supplyType and maxSupply if it can't be infered from user query.`,
+  Ask user about supplyType and maxSupply if it can't be infered from user query.
+  If tokens being create might be used in real world, tell use about other optional keys and why and when they should set them.  
+  `,
   func: async ( params ) =>
   {
     const { response, error } = await createTokenAPI( params );
@@ -377,10 +379,11 @@ const create_token_tool = new DynamicStructuredTool<{ openAlert?: ( name: string
         const inputs = { ...input }
         // @ts-ignore
         delete inputs.accountId
-        const token: Token = {
+        const token: Token & {network:string} = {
           ...inputs,
           tokenId: tokenId,
-          ownerAccountId: result.artifact.accountId
+          ownerAccountId: result.artifact.accountId,
+          network:context?.network as any
         }
         if ( context && context.user )
         {
@@ -399,7 +402,7 @@ const create_token_tool = new DynamicStructuredTool<{ openAlert?: ( name: string
         // localStorage.setItem( "tokens", JSON.stringify( tokens ) )
         if ( context && context.openAlert ) context.openAlert(
           `${token.assetType} Created`, `You can view the token in dashboard`,
-          `${token.name} (${token.symbol})\n\n TokenId  [${token.tokenId}](/dashboard/tokens/${token.tokenId})` )
+          `${token.name} (${token.symbol})\n\n TokenId  [${token.tokenId}](/dashboard/tokens/${token.tokenId}?network${context.network})` )
       }
     } catch ( err )
     {

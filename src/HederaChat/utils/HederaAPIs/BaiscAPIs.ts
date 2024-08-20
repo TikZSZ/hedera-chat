@@ -191,7 +191,7 @@ export const accountInfoSchema: TransformSchema = {
 
 const get_transactions_tool = new DynamicStructuredTool( {
   name: "get_transactions_tool",
-  description: "Retrieves transaction info for user's connected hedera account. Transaction id could be provided to get infomration about a particular transaction",
+  description: "Retrives transactions for given accountId and Network",
   func: async ( params ) =>
   {
     const { response, error } = await getTransactionsAPI( params )

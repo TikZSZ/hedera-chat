@@ -69,6 +69,7 @@ export default function HashConnectProvider({ children }: PropsWithChildren) {
   };
 
   useEffect(()=>{
+    console.log(isConnected)
     if(pairingData && pairingData.accountIds.length > 0) {
       setIsConnected(true)
     }else{

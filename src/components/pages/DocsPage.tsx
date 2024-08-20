@@ -1,14 +1,12 @@
 import docsMarkdown from "@/docs.md?raw";
 
-import React, { Suspense } from "react";
+import { Suspense } from "react";
 import MarkdownRenderer from "../MarkdownRenderer";
-import SyntaxHighlighter from "react-syntax-highlighter";
-import Markdown from "react-markdown";
-import { duotoneSpace } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { dracula,oneDark,materialOceanic } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Skeleton } from "../ui/skeleton";
 
 
-const markdownTheme = duotoneSpace;
+const markdownTheme = oneDark;
 
 const MarkdownLoading = () => (
   <div className="space-y-2">
@@ -28,7 +26,7 @@ function DocsPage() {
   return (
     <div className="container ">
       <Suspense fallback={<MarkdownLoading />}>
-        <MarkdownRenderer content={docsMarkdown} />
+        <MarkdownRenderer style={markdownTheme } content={docsMarkdown} />
       </Suspense>
     </div>
   );

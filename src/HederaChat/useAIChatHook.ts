@@ -73,7 +73,7 @@ export const useAIChat = <C> ( config: ChatConfig<C> ) =>
     //     await toolsMap[ toolName as any ].afterCallback(toolResult,context)
     //   }
     // }  )
-    console.log( messages )
+    // console.log( messages )
   }, [ messages ] );
 
   const invokeAI = useCallback( async () =>

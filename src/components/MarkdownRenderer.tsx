@@ -82,7 +82,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, style, com
                 style={style ? style : duotoneSpace}
                 language={match[1]}
                 PreTag="div"
-                className="!text-current"
+                className="!text-current text-lg  !m-0 mt-0"
                 wrapLines={true}
                 wrapLongLines={true}
               >
@@ -92,6 +92,15 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, style, com
               <code {...props} className={`${className} bg-primary rounded px-1 py-0.5 !text-current`}>
                 {children}
               </code>
+            );
+          },
+          pre({ node, children,className, ...props }) {
+            return (
+              <pre
+              className={className ? className:" " + " p-0 m-0"}
+              >
+                {children}
+              </pre>
             );
           },
           a({ node, children, href, ...props }) {

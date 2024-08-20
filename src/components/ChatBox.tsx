@@ -122,7 +122,7 @@ interface UploadedFile {
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 const enableAlertDialog = true;
-export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
+export const ChatBox = () => {
   const {
     uploadedFiles,
     setShowUploadedFiles,
@@ -132,11 +132,15 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
     isUploading,
     setIsUploading,
     setUploadedFiles,
+    isFullScreen,
+    setIsFullScreen,
+    isMinimized,
+    setIsMinimized
   } = useChatState();
 
   const { messages, addMessage, config } = useChatSDK();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const { connectToExtension, isConnected, isLoading } = useWallet();
+  const { connectToExtension, isConnected, isLoading,pairingData } = useWallet();
   const { user } = useAuth();
   // const [showUploadedFiles, setShowUploadedFiles] = useState(false);
   // const [isUploading, setIsUploading] = useState(false);
@@ -145,8 +149,7 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
 
   const [error, setError] = useState<string | null>();
 
-  const [isMinimized, setIsMinimized] = useState<boolean>(minimzed);
-  const [isFullScreen, setIsFullScreen] = useState<boolean>(fullscreen);
+  
   const [alertContent, setAlertContent] = useState({
     title: "NFT Created",
     description: `You can view the token in dashboard`,
@@ -172,7 +175,7 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
     context,
   } = useAIChat({
     params: { model: "gpt-4o-mini" },
-    context: { openAlert, user },
+    context: { openAlert, user,network:pairingData?.network },
     messageProcessor: !import.meta.env.DEV
       ? appwriteMessageProcessor
       : undefined,
@@ -228,8 +231,8 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
   });
 
   useEffect(() => {
-    setContext({ openAlert, user });
-  }, [user]);
+    setContext({ openAlert, user,network:pairingData?.network });
+  }, [user,pairingData]);
 
   const toggleMinimize = useCallback(() => {
     setIsMinimized((prev) => !prev);
@@ -299,7 +302,7 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
       {...getRootProps()}
     >
       <input {...getInputProps()} />
-      <CardHeader className="flex flex-row items-center justify-between p-4 h-12 border-border border-b">
+      <CardHeader className={`flex flex-row items-center justify-between p-4 h-12 ${isMinimized?"":"border-border border-b"}`}>
         <span className="font-semibold">Chat Assistant</span>
         <div>
           {!isMinimized && (
@@ -313,7 +316,7 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
           )}
           <Button variant="ghost" size="icon" onClick={toggleMinimize}>
             {isMinimized ? (
-              <Maximize className="h-4 w-4" />
+              <Maximize className="h-4 w-4 -mt-1" />
             ) : (
               <X className="h-4 w-4" />
             )}
@@ -448,14 +451,14 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
                   }
                 }}
               />
-              <Button
+              {/* <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => document.getElementById("fileInput")?.click()}
                 disabled={isUploading}
               >
                 <Paperclip className="h-4 w-4" />
-              </Button>
+              </Button> */}
               <Button
                 ref={formButtonRef}
                 onClick={handleSend}

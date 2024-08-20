@@ -87,13 +87,13 @@ export const Navbar = () => {
           ...message,
           rawChatBody: {
             ...message.rawChatBody,
-            content: message.rawChatBody.content!.replace(`- Current USD to HBAR rate is:`,`- Current HBAR to USD rate is: ${result.toString()}`) ,
+            content: message.rawChatBody.content!.replace(`Current HBAR to USD rate is:`,`- Current HBAR to USD rate is: ${result.toString()}`) ,
           },
         };
         updateSystemMessage(updatedSysMessage);
       }
       
-    })
+    },(err)=>{console.error(err)})
   }, []);
 
   useEffect(() => {
@@ -155,7 +155,7 @@ export const Navbar = () => {
         <NavLink
           to="docs"
           className={({isActive}) =>
-            (isActive ? "text-primary" : "text-primary-foreground")
+            (isActive ? "text-primary" : "dark:text-primary-foreground text-secondary-foreground")
           }
         >
           <Button variant="ghost" className="mr-4">
@@ -165,7 +165,7 @@ export const Navbar = () => {
 
         {user ? (
           <NavLink to="dashboard" className={({isActive}) =>
-            (isActive ? "text-primary" : "text-primary-foreground")
+            (isActive ? "text-primary" : "dark:text-primary-foreground text-secondary-foreground")
           }>
             <Button variant="ghost" className="mr-4">
               Dashboard
@@ -249,7 +249,7 @@ export const Navbar = () => {
     <header className="p-4 bg-card shadow-md top-0 bg-opacity-10 w-full  z-10 border-border border-b">
       <nav className="flex justify-between items-center max-w-6xl mx-auto">
         <Link to="/">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold ">
             HederaChat
           </h1>
         </Link>

@@ -5,7 +5,13 @@ import {
   useSearchParams,
   useNavigate,
 } from "react-router-dom";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -16,7 +22,13 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Coins, FileText, ArrowLeft } from "lucide-react";
+import {
+  Coins,
+  FileText,
+  ArrowLeft,
+  ExternalLink,
+  LucideSendToBack,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Client,
@@ -28,12 +40,14 @@ import { Tokens } from "@tikz/hedera-mirror-node-ts/dist/RestMirrorNode/tokenBas
 import LoadingComponent from "../LoadingComponent";
 import ErrorComponent from "../ErrorComponent";
 import { useChatState } from "@/contexts/useChatState";
+import { useWallet } from "@/contexts/hashconnect";
 
 const TokenDetailPage = () => {
-  const {setInputValue} = useChatState()
+  const { setInputValue, setIsMinimized } = useChatState();
   const { tokenId } = useParams<{ tokenId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { selectedAccount } = useWallet();
   // const [token, setToken] = useState<Token | null>(null);
   // const [balances, setBalances] = useState<Balance[] | null>(null);
   // const [nfts, setNfts] = useState<NFT[] | null>(null);
@@ -57,8 +71,10 @@ const TokenDetailPage = () => {
     queryFn: async () => {
       const tokensCursor = Tokens.v1(client);
       const { tokens } = await tokensCursor.setTokenId(tokenId!).get();
-      return tokens[0];
-    },staleTime: 60000 
+      if (tokens.length > 0) return tokens[0];
+      return null;
+    },
+    staleTime: 60000,
   });
   const assetType = token && token.type;
 
@@ -66,11 +82,11 @@ const TokenDetailPage = () => {
     queryKey: ["Balances", tokenId],
     queryFn: async () => {
       const TBCursor = tokenUtils(client).TokenBalance;
-      if(accountId) TBCursor.setAccountId(accountId)
+      if (accountId) TBCursor.setAccountId(accountId);
       const { balances } = await TBCursor.setTokenId(tokenId!).get();
       return balances;
     },
-    staleTime: 60000 ,
+    staleTime: 60000,
     enabled:
       !!assetType &&
       assetType === TokenTypeFilter.FUNGIBLE_COMMON.toUpperCase(),
@@ -80,7 +96,7 @@ const TokenDetailPage = () => {
     queryKey: ["Balances", tokenId],
     queryFn: async () => {
       const NFTsCursor = nftUtils(client).NFTs;
-      if(accountId) NFTsCursor.setAccountId(accountId)
+      if (accountId) NFTsCursor.setAccountId(accountId);
       const { nfts } = await NFTsCursor.setTokenId(tokenId!).get();
       return nfts;
     },
@@ -99,6 +115,7 @@ const TokenDetailPage = () => {
   if (isPending) return <LoadingComponent />;
 
   if (isError) return <ErrorComponent message={error.message} />;
+  if (!token) return <ErrorComponent message="No tokens found" />;
 
   return (
     <div className="space-y-6">
@@ -170,7 +187,8 @@ const TokenDetailPage = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Coins className="mr-2" /> {!accountId?"All Token Holders":"Token Balances"}
+                  <Coins className="mr-2" />{" "}
+                  {!accountId ? "All Token Holders" : "Token Balances"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -179,6 +197,7 @@ const TokenDetailPage = () => {
                     <TableRow>
                       <TableHead>Account</TableHead>
                       <TableHead>Balance</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -189,14 +208,40 @@ const TokenDetailPage = () => {
                           {balance.balance / Math.pow(10, balance.decimals)}{" "}
                           {token.symbol}
                         </TableCell>
+                        <TableCell>
+                          {selectedAccount &&
+                          balance.account === selectedAccount ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center"
+                              onClick={() => {
+                                setInputValue(
+                                  `Transfer some tokens for tokenId ${token.token_id}`
+                                );
+                                setIsMinimized(false);
+                              }}
+                            >
+                              Send Token{" "}
+                              <LucideSendToBack className="ml-2 h-4 w-4" />
+                            </Button>
+                          ) : null}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </CardContent>
               <CardFooter>
-                <Button onClick={() => setInputValue(`Mint fungible tokens for tokenId ${token.token_id}`)}>
-                  Mint More Tokens
+                <Button
+                  onClick={() => {
+                    setInputValue(
+                      `Mint fungible tokens ${token.name} (${token.symbol}) for tokenId ${token.token_id} `
+                    );
+                    setIsMinimized(false);
+                  }}
+                >
+                  Mint Tokens
                 </Button>
               </CardFooter>
             </Card>
@@ -207,7 +252,8 @@ const TokenDetailPage = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <FileText className="mr-2" />{!accountId?"All NFT Holders":"NFTs"} 
+                  <FileText className="mr-2" />
+                  {!accountId ? "All NFT Holders" : "NFTs"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -218,6 +264,7 @@ const TokenDetailPage = () => {
                       <TableHead>Owner</TableHead>
                       <TableHead>Minted</TableHead>
                       <TableHead>Metadata</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -231,14 +278,41 @@ const TokenDetailPage = () => {
                         <TableCell className="truncate max-w-xs">
                           {atob(nft.metadata)}
                         </TableCell>
+
+                        <TableCell>
+                          {selectedAccount &&
+                          nft.account_id === selectedAccount ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center"
+                              onClick={() => {
+                                setInputValue(
+                                  `Transfer serialNumber ${nft.serial_number} of tokenId ${token.token_id}`
+                                );
+                                setIsMinimized(false);
+                              }}
+                            >
+                              Send Token{" "}
+                              <LucideSendToBack className="ml-2 h-4 w-4" />
+                            </Button>
+                          ) : null}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </CardContent>
               <CardFooter>
-                <Button onClick={() => setInputValue(`Mint NFT for tokenId ${token.token_id}`)}>
-                  Mint More NFTs
+                <Button
+                  onClick={() => {
+                    setInputValue(
+                      `Mint NFT for ${token.name} (${token.symbol}) tokenId ${token.token_id} `
+                    );
+                    setIsMinimized(false);
+                  }}
+                >
+                  Mint NFTs
                 </Button>
               </CardFooter>
             </Card>

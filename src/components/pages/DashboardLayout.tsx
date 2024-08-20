@@ -14,10 +14,10 @@ import AutoHideScrollbar from "../AutoHideScrollbar";
 const Sidebar = () => {
   const navItems = [
     // { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
-    { icon: MessageCircle, label: "Topics", to: "/topics" },
+    // { icon: MessageCircle, label: "Topics", to: "/topics" },
     { icon: Coins, label: "Tokens", to: "/dashboard/tokens" },
     { icon: User, label: "Account", to: "/dashboard/account" },
-    { icon: Settings, label: "Settings", to: "/settings" },
+    // { icon: Settings, label: "Settings", to: "/settings" },
   ];
 
   return (

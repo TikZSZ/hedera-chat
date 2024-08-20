@@ -35,7 +35,7 @@ function App() {
         </Suspense>
         <Outlet />
         <Suspense fallback={<ChatBoxLoading></ChatBoxLoading>}>
-          <ChatBox fullscreen={false} minimzed={false} />
+        {location.pathname.includes("login") || location.pathname.includes("signup") ? (null) : <ChatBox />}
         </Suspense>
         {!location.pathname.includes("dashboard") ? (
           <footer className="bg-muted py-8">

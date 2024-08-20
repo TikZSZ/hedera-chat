@@ -66,6 +66,25 @@
   /* overflow-wrap: break-word !important;
   white-space : pre-wrap !important; */
 }
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  50.01%, 100% {
+    opacity: 0;
+  }
+}
+
+.typewriter .cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background-color: currentColor;
+  vertical-align: middle;
+  margin-left: 2px;
+  animation: blink 0.7s infinite;
+}
+
 /* .prose code {
   word-break: break-word !important;
   overflow-wrap: break-word !important;

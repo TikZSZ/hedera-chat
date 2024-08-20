@@ -6,7 +6,6 @@ import React, {
   ReactNode,
 } from "react";
 import { Tool } from "./utils/aiUtils";
-import { ChatBox } from "../components/ChatBox";
 export type MessageType = "user" | "assistant" | "system" | "tool";
 
 export interface RawChatBody<
@@ -39,7 +38,6 @@ export interface ChatSDKConfig {
     userMessage?: React.CSSProperties;
     assistantMessage?: React.CSSProperties;
   };
-  initialOpen?: boolean;
   messages?: Message[];
   tools: Tool<any>[];
 }

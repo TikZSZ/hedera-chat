@@ -1,6 +1,7 @@
 # ChatSDK Documentation
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Installation](#installation)
 3. [Basic Usage](#basic-usage)
@@ -11,12 +12,24 @@
 
 ## Introduction
 
-ChatSDK is a flexible and powerful React-based SDK for building chat applications. It provides a state management solution and hooks for easy integration with AI models, making it ideal for creating conversational interfaces.
+HederaChat is a flexible and powerful React-based SDK for building Web3 actionable AI applications. It provides streamlined tools and tool use API, along with state management and hooks for easy integration with AI models in Apps.
+
+## Why should you use HederaChat SDK
+
+1. **Flexibility**: Easily swap out AI models or message processing logic without changing your UI code.
+
+2. **State Management**: Built-in state management for messages and tools, reducing boilerplate in your application.
+
+3. **TypeScript Support**: Full TypeScript support for improved developer experience and type safety.
+
+4. **Extensibility**: The tool system allows for easy addition of new capabilities to your chat application.
+
+5. **Decoupled Logic**: The separation of state (ChatSDK) and logic (useAIChat) allows for easier testing
 
 ## Installation
 
 ```bash
-npm install chat-sdk
+npm install hederachat
 ```
 
 ## Basic Usage
@@ -24,11 +37,11 @@ npm install chat-sdk
 To use the ChatSDK in your React application, follow these steps:
 
 1. Wrap your application or chat component with the `ChatSDK` provider:
+It holds all the state for messages
+```tsx
+import { ChatSDK,ChatSDKConfig } from "hederachat";
 
-```jsx
-import { ChatSDK } from 'chat-sdk';
-
-const App = () => {
+const App:ChatSDKConfig = () => {
   const config = {
     tools: [], // Add any custom tools here
     messages: [], // Initial messages (optional)
@@ -44,38 +57,40 @@ const App = () => {
 
 2. Use the `useChatSDK` and `useAIChat` hooks in your chat component:
 
-```jsx
-import { useChatSDK, useAIChat } from 'chat-sdk';
+```tsx
+import { useChatSDK, useAIChat } from "hederachat";
 
 const ChatBox = () => {
   const { messages, addMessage } = useChatSDK();
   const { inProgress, setContext } = useAIChat({
-    params: { model: "gpt-4-mini" },
-    context: { /* Your context object */ },
+    params: { temprature: 0.5,model: {model name} },
+    context: {
+      /* Your context object */
+    },
   });
 
-  // ... rest of your component logic
 };
 ```
 
 3. Implement the chat interface:
 
-```jsx
+```tsx
 const ChatBox = () => {
   // ... previous code
 
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
 
   const handleSend = async () => {
     if (inputValue.trim()) {
       const newMessage = {
         id: Date.now().toString(),
         type: "user",
-        content: inputValue,
-        isVisible: true,
+        content: inputValue, // set content to be shown to user
+        isVisible: true, // set if should be visible in chat componenet
+        // use rawChatBody to store full chat response from your model
         rawChatBody: { role: "user", content: inputValue },
       };
-      
+      // add the message and let hedera chat handle the rest
       addMessage(newMessage);
       setInputValue("");
     }
@@ -84,7 +99,7 @@ const ChatBox = () => {
   return (
     <div>
       {/* Render messages */}
-      {messages.map(message => (
+      {messages.map((message) => (
         <div key={message.id}>{message.content}</div>
       ))}
 
@@ -108,39 +123,94 @@ const ChatBox = () => {
 
 You can provide a custom message processor to `useAIChat`:
 
-```jsx
-const customMessageProcessor = async (messages, params) => {
-  // Your custom logic here
+```tsx
+// import type from hederachat
+type AIMessageProcessor = ( messages: Message[], params: Omit<OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming, "messages"> ) => Promise<OpenAI.Chat.Completions.ChatCompletion>;
+
+const customMessageProcessor:AIMessageProcessor = async (messages, params) => {
+  // Call you model here
 };
 
 const { inProgress } = useAIChat({
-  params: { model: "gpt-4-mini" },
+  params: { temprature:0.5} //model params
   messageProcessor: customMessageProcessor,
 });
 ```
 
 ### Using Tools
-
+You can provide hederachat with tools that form the action component, thats the bread and butter of hederachat below is shown how to create you own tools 
 You can define and use custom tools with the ChatSDK:
 
-```jsx
-const myTool = {
-  name: 'myCustomTool',
-  toolDef: {
-    // Tool definition
-  },
-  invoke: async (params, context) => {
-    // Tool implementation
-  },
-};
+```tsx
+import { DynamicStructuredTool,ChatSDKConfig,hederaChatTools } from "hederachat";
 
-const config = {
+import {z} from "zod"
+// define tools schema
+const toolSchema = z.object( {
+  param1: z.number(),
+  param2: z.string(),
+} );
+
+// define tools
+const myTool = new DynamicStructuredTool({
+  name: "Tool Name",
+  description: "Tool description",
+  func: async (params) => {
+    // tool code
+  },
+  schema: toolSchema,
+  afterCallback(result, context) {
+    // do something after tool call
+  },
+});
+
+const config: ChatSDKConfig = {
+  messages: [
+    {
+      id: Date.now().toString(),
+      type: "system",
+      content: "",
+      rawChatBody: {
+        role: "system",
+        content: systemMessage,
+      },
+    },
+  ],
+  // use tools as config
   tools: [myTool],
+  // use tools: hederaChatTools for our provided tools.
+};
+// in main.tsx/main.tsx
+<ChatSDK config={config}>
+  <App />
+</ChatSDK>;
+```
+Apart from this you can also dynamically change tools by calling setTools from useChatSDK.
+### Using PreAdd Custom Messages
+
+You can pre add messages, this is useful for system messages or restoring the conversation 
+
+```tsx
+import { ChatSDKConfig } from "hederachat";
+
+const config: ChatSDKConfig = {
+  messages: [
+    {
+      id: Date.now().toString(),
+      type: "system",
+      content: "",
+      rawChatBody: {
+        role: "system",
+        content: systemMessage,
+      },
+    },
+  ],
 };
 
+// in main.tsx/main.tsx
 <ChatSDK config={config}>
-  {/* Your chat component */}
-</ChatSDK>
+  <App />
+</ChatSDK>;
 ```
 
 ## API Reference
@@ -148,12 +218,14 @@ const config = {
 ### `ChatSDK`
 
 Props:
+
 - `config: ChatSDKConfig`
 - `children: ReactNode`
 
 ### `useChatSDK`
 
 Returns:
+
 - `messages: Message[]`
 - `addMessage: (message: Message) => void`
 - `updateMessage: (id: string, updates: Partial<Message>) => void`
@@ -168,9 +240,11 @@ Returns:
 ### `useAIChat`
 
 Props:
+
 - `config: ChatConfig<C>`
 
 Returns:
+
 - `inProgress: boolean`
 - `error: string | null`
 - `setContext: (context: C) => void`
@@ -198,4 +272,4 @@ The ChatSDK offers several ways to customize its behavior:
 
 4. **Extensibility**: The tool system allows for easy addition of new capabilities to your chat application.
 
-5. **Decoupled Logic**: The separation of state (ChatSDK) and logic (useAIChat) allows for easier testi
+5. **Decoupled Logic**: The separation of state (ChatSDK) and logic (useAIChat) allows for easier testing
