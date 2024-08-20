@@ -32,8 +32,8 @@ export const ChatStateProvider: React.FC<{ children: React.ReactNode,minimzed:bo
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [showUploadedFiles, setShowUploadedFiles] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isMinimized, setIsMinimized] = useState<boolean>(minimzed ||true);
-  const [isFullScreen, setIsFullScreen] = useState<boolean>(fullscreen ||false);
+  const [isMinimized, setIsMinimized] = useState<boolean>(minimzed);
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(fullscreen);
 
   return (
     <ChatContext.Provider
