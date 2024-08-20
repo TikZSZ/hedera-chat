@@ -60,7 +60,7 @@ export const getTokenBalancesAPISchema = z.object( {
   network: z.enum( [ 'testnet', 'mainnet' ] ).default( 'testnet' ),
   tokenId: z.string().optional().describe( "" ),
   accountId: z.string().optional().describe( "" ),
-  assetType: z.enum( [ TOKEN, NFT ] ).default( TOKEN ).describe( "Must be set for NFTs" ),
+  assetType: z.enum( [ TOKEN, NFT ] ).default( TOKEN ).describe( "Must be set for to NONFUNGIBLE for NFTs" ),
   accountBalance: z.object( {
     operator: z.enum( [ 'gt', 'gte', 'lt', 'lte', 'ne', 'eq' ] ),
     value: z.union( [ z.string(), z.number() ] ),
@@ -152,9 +152,9 @@ const TokenBalanceAPIResponseSchema:TransformSchema = {
 const get_token_balances_tool = new DynamicStructuredTool( {
   name: "get_token_balances_tool",
   description:
-    `1. Retrieves List of Balances and Owners for provided TokenID, 
-  2. If both accountID and tokenId is set then token's balance for that account.
-  3. If only accountID is provided, fetches all tokens owned by accountId could be used for both NFTs or Fungible Tokens
+    `1. Retrieves List of token holders and their balances for provided TokenID, 
+  2. If both accountID and tokenId is set then token's balance held by that accountID.
+  3. If only accountID is provided, fetches all Tokens owned by accountId could be used for both NFTs or Fungible Tokens
   `,
   func: async ( params ) =>
   {
@@ -294,7 +294,7 @@ async function getNFTInfoAPI ( params: z.infer<typeof getNFTInfoSchema> ): Promi
 
 const getNFTInfoTool = new DynamicStructuredTool( {
   name: "get_nft_info",
-  description: "Retrieves info about an NFT (NON_FUNGIBLE). Provide either serialNumber for a specific NFT or accountId to get all NFTs owned by an account for the tokenID. Can optionally include transaction history.",
+  description: "Retrieves info NFTs (NON_FUNGIBLE) Tokens. Provide either serialNumber for a specific NFT or accountId to get all NFTs owned by the account for that tokenID. Can optionally include transaction history.",
   schema: getNFTInfoSchema,
   func: async ( params ) =>
   {

@@ -139,7 +139,7 @@ export const useAIChat = <C> ( config: ChatConfig<C> ) =>
             id: Date.now().toString(),
             type: "tool",
             rawChatBody: toolCallResult,
-            isVisible: true,
+            isVisible: false,
             content: toolCallResultsFormatted[index],
           } ) )
         );

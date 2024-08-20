@@ -8,7 +8,7 @@ const appMetadata: DappMetadata = {
     url: import.meta.env["DEV"] ?"http://localhost:5173":"https://hedera-ai.vercel.app",
 };
 
-const projectId = "3c0043ed9575b3f4d4095e94c5f1c7ca";
+const projectId = "e49ed79ed340742be3e313a3405f03fc";
 
 export let hashconnect = new HashConnect(
     LedgerId.TESTNET,

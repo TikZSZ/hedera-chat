@@ -23,25 +23,7 @@ const MarkdownLoading = () => (
   </div>
 );
 
-const ChatBoxLoading = () => (
-  <div className="fixed bottom-4 right-4 md:w-96 md:h-[500px] w-11/12 h-[50%] bg-card border border-border rounded-lg shadow-lg">
-    <div className="p-4 border-b border-border">
-      <Skeleton className="h-6 w-[100px]" />
-    </div>
-    <div className="p-4 space-y-4">
-      <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-10 w-full" />
-    </div>
 
-    <div className="fixed bottom-10 border-t w-full border-border ">
-      <div className="flex mt-4 items-center space-x-2">
-        <Skeleton className="ml-5 h-10 w-[250px]" />
-        <Skeleton className="h-9 w-9" />
-        <Skeleton className="h-9 w-9" />
-      </div>
-    </div>
-  </div>
-);
 
 const SyntaxHighlighter = lazy(() =>
   import("react-syntax-highlighter").then((module) => ({
@@ -54,7 +36,7 @@ import { duotoneSpace } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 const markdownTheme = duotoneSpace;
 
-const ChatBox = lazy(() => import("../ChatBox"));
+
 
 const LandingPage = () => {
   return (
@@ -147,9 +129,6 @@ chat.init();
           <h3 className="text-2xl font-bold mb-4">Ready to get started?</h3>
           <Button size="lg">Sign Up for Free</Button>
         </section>
-        <Suspense fallback={<ChatBoxLoading />}>
-          <ChatBox fullscreen={false} minimzed={false} />
-        </Suspense>
       </main>
     </div>
   );

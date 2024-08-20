@@ -5,7 +5,7 @@ import {
   useSearchParams,
   useNavigate,
 } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -27,9 +27,10 @@ import {
 import { Tokens } from "@tikz/hedera-mirror-node-ts/dist/RestMirrorNode/tokenBaseClasses";
 import LoadingComponent from "../LoadingComponent";
 import ErrorComponent from "../ErrorComponent";
+import { useChatState } from "@/contexts/useChatState";
 
 const TokenDetailPage = () => {
-  console.log("hi");
+  const {setInputValue} = useChatState()
   const { tokenId } = useParams<{ tokenId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -193,6 +194,11 @@ const TokenDetailPage = () => {
                   </TableBody>
                 </Table>
               </CardContent>
+              <CardFooter>
+                <Button onClick={() => setInputValue(`Mint fungible tokens for tokenId ${token.token_id}`)}>
+                  Mint More Tokens
+                </Button>
+              </CardFooter>
             </Card>
           </TabsContent>
         )}
@@ -230,6 +236,11 @@ const TokenDetailPage = () => {
                   </TableBody>
                 </Table>
               </CardContent>
+              <CardFooter>
+                <Button onClick={() => setInputValue(`Mint NFT for tokenId ${token.token_id}`)}>
+                  Mint More NFTs
+                </Button>
+              </CardFooter>
             </Card>
           </TabsContent>
         )}

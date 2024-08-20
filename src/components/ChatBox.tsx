@@ -56,6 +56,7 @@ import { appwriteService } from "@/appwrite/config";
 import { useWallet } from "@/contexts/hashconnect";
 import MarkdownRenderer from "./MarkdownRenderer";
 import { conf } from "@/conf/conf";
+import { useChatState } from "@/contexts/useChatState";
 const markdownTheme = duotoneSpace;
 
 interface ChatDialogProps {
@@ -64,23 +65,23 @@ interface ChatDialogProps {
 }
 
 async function shortenURL(url: string) {
-  const hostURL = 'https://url-shortener-service.p.rapidapi.com/shorten';
+  const hostURL = "https://url-shortener-service.p.rapidapi.com/shorten";
   const data = new FormData();
-  data.append('url', url);
+  data.append("url", url);
 
   const options = {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'x-rapidapi-key': conf.rapidAPIKey,
-      'x-rapidapi-host': 'url-shortener-service.p.rapidapi.com'
+      "x-rapidapi-key": conf.rapidAPIKey,
+      "x-rapidapi-host": "url-shortener-service.p.rapidapi.com",
     },
-    body: data
+    body: data,
   };
 
   try {
     const response = await fetch(hostURL, options);
     const { result_url } = await response.json();
-    return result_url as string
+    return result_url as string;
   } catch (error) {
     console.error(error);
   }
@@ -122,15 +123,26 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 const enableAlertDialog = true;
 export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
+  const {
+    uploadedFiles,
+    setShowUploadedFiles,
+    showUploadedFiles,
+    inputValue,
+    setInputValue,
+    isUploading,
+    setIsUploading,
+    setUploadedFiles,
+  } = useChatState();
+
   const { messages, addMessage, config } = useChatSDK();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [showUploadedFiles, setShowUploadedFiles] = useState(false);
-  const { connectToExtension, isConnected,isLoading } = useWallet();
+  const { connectToExtension, isConnected, isLoading } = useWallet();
   const { user } = useAuth();
-  const [inputValue, setInputValue] = useState("");
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  
+  // const [showUploadedFiles, setShowUploadedFiles] = useState(false);
+  // const [isUploading, setIsUploading] = useState(false);
+  // const [inputValue, setInputValue] = useState("");
+  // const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+
   const [error, setError] = useState<string | null>();
 
   const [isMinimized, setIsMinimized] = useState<boolean>(minimzed);
@@ -152,7 +164,6 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
   const closeAlert = () => {
     setIsAlertOpen(false);
   };
-  
 
   const {
     inProgress,
@@ -174,13 +185,12 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
     setIsUploading(true);
     try {
       console.log(acceptedFiles);
-
       const uploadedFiles = await Promise.all(
         acceptedFiles.map(async (file) => {
           const response = await appwriteService.uploadFile(file);
           if (response) {
             const fileUrl = appwriteService.getFileView(response.$id) as URL;
-            const shortendURL = await shortenURL(fileUrl.href)
+            const shortendURL = await shortenURL(fileUrl.href);
             return {
               name: file.name,
               url: shortendURL,
@@ -357,10 +367,9 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
                 </CollapsibleContent>
               </Collapsible>
             )}
-            {
-            (error || error2) && (
+            {(error || error2) && (
               <div className="bg-destructive text-destructive-foreground p-4 text-center">
-                {error2 ? error2:error}
+                {error2 ? error2 : error}
               </div>
             )}
             <AutoHideScrollbar
@@ -389,7 +398,24 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
                         }
                       >
                         {message.content && (
-                          <MarkdownRenderer content={message.content} />
+                          <MarkdownRenderer
+                            components={{
+                              a({ node, children, href, ...props }) {
+                                return (
+                                  <a
+                                    href={href}
+                                    className="text-primary-foreground hover:text-card underline"
+                                    target={"_blank"}
+                                    rel={"noopener noreferrer"}
+                                    {...props}
+                                  >
+                                    {children}
+                                  </a>
+                                );
+                              },
+                            }}
+                            content={message.content}
+                          />
                         )}
                       </div>
                     </div>
@@ -433,7 +459,7 @@ export const ChatBox = ({ minimzed, fullscreen }: ChatDialogProps) => {
               <Button
                 ref={formButtonRef}
                 onClick={handleSend}
-                disabled={inProgress || isUploading || isLoading}
+                disabled={inProgress || isUploading}
               >
                 {inProgress || isUploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

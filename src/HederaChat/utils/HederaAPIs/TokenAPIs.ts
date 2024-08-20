@@ -18,7 +18,7 @@ export const createTokenAPISchema = z.object( {
   name: z.string().max( 100 ).describe( "Name of token" ),
   symbol: z.string().max( 100 ).describe( "Token Symbol" ),
   decimals: z.number().int().max( 18 ).describe( "number of decimal places the token will have" ).default( 2 ),
-  initialSupply: z.number().optional().describe( "Only applicable for TOKEN Number of tokens minted initially" ),
+  initialSupply: z.number().optional().describe( "Number of tokens minted initially, only for FUNGIBLES" ),
   supplyType: z.enum( [ 'FINITE', 'INFINITE' ] ).default( "INFINITE" ).describe( `Specifies the token supply type.` ),
   kycPublicKey: z.string().optional().describe( "Key that sets kyc flags" ),
   freezePublicKey: z.string().optional().describe( "The key which can sign to freeze or unfreeze an account for token transactions." ),
@@ -50,7 +50,10 @@ export const createTokenAPI = async ( params: z.infer<typeof createTokenAPISchem
       params.decimals = 0;
       params.initialSupply = 0;
     }
-    if ( params.supplyType == "FINITE" && !params.maxSupply ) throw new Error( "maxSupply must be provided when supplyType is set to finite" )
+    if ( params.supplyType === "FINITE" && !params.maxSupply ) throw new Error( "maxSupply must be provided when supplyType is set to finite" )
+    if (params.supplyType ==="INFINITE" && params.maxSupply){
+      delete params.maxSupply
+    }
     const accountId = AccountId.fromString( params.accountId )
     // Create a token create transaction
     const transaction = new TokenCreateTransaction()
