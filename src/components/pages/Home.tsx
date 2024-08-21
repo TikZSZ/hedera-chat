@@ -15,7 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import {gsap} from "gsap";
+import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -40,6 +40,7 @@ const MarkdownLoading = () => (
 );
 
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { Link } from "react-router-dom";
 
 const LandingPage = () => {
   const titleRef = useRef(null);
@@ -86,15 +87,16 @@ const LandingPage = () => {
           },
           onComplete: () => {
             gsap.to(card, {
-              y: Math.random()*20,
+              y: Math.random() * 20,
               duration: 7,
               ease: "power1.inOut",
               yoyo: true,
               repeat: -1,
             });
           },
-        })
-    })
+        }
+      );
+    });
     // Animate background gradient
     gsap.to(heroRef.current, {
       backgroundPosition: "100% 100%",
@@ -126,10 +128,7 @@ const LandingPage = () => {
       ref={heroRef}
       className="relative min-h-screen bg-gradient-to-br from-[hsl(var(--background))] via-[hsl(var(--primary)/0.1)] to-[hsl(var(--background))]  bg-[length:400%_400%] flex items-center overflow-hidden"
     >
-      <div
-        ref={particlesRef}
-        className="absolute inset-0 pointer-events-none"
-      >
+      <div ref={particlesRef} className="absolute inset-0 pointer-events-none">
         {[...Array(50)].map((_, i) => (
           <div
             key={i}
@@ -144,35 +143,46 @@ const LandingPage = () => {
 
       <main className="max-w-6xl mx-auto flex flex-col justify-center items-center py-20 px-4 text-center">
         <section className="mb-16 min-h-[50vh] md:min-h-[85vh]">
-        <div className="mt-12 md:mt-56">
-        <h2
-          ref={titleRef}
-          className="text-5xl md:text-6xl font-extrabold text-[hsl(var(--foreground))] leading-tight mb-6"
-        >
-          Empower Your <span className="text-[hsl(var(--primary))]">Hedera dApp</span> with AI Chat
-        </h2>
-        <p
-          ref={subtitleRef}
-          className="text-xl text-center text-[hsl(var(--muted-foreground))] ml-auto mr-auto max-w-2xl"
-        >
-          Add intelligent conversations and Web3 actions to your application with just a few lines of code. Unlock the power of AI-driven blockchain interactions.
-        </p>
-        <div ref={buttonRef} className="space-x-4 mt-6">
-          <Button
-            size="lg"
-            className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))] hover:scale-105 transition-transform duration-300 text-[hsl(var(--primary-foreground))]"
-          >
-            Try Demo
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="text-[hsl(var(--foreground))] border-[hsl(var(--border))] hover:bg-[hsl(var(--foreground))] hover:text-[hsl(var(--background))] hover:scale-105 transition-transform duration-300"
-          >
-            View on GitHub
-          </Button>
-        </div>
-        </div>
+          <div className="mt-12 md:mt-56">
+            <h2
+              ref={titleRef}
+              className="text-5xl md:text-6xl font-extrabold text-[hsl(var(--foreground))] leading-tight mb-6"
+            >
+              Empower Your{" "}
+              <span className="text-[hsl(var(--primary))]">Hedera dApp</span>{" "}
+              with AI Chat
+            </h2>
+            <p
+              ref={subtitleRef}
+              className="text-xl text-center text-[hsl(var(--muted-foreground))] ml-auto mr-auto max-w-2xl"
+            >
+              Add intelligent conversations and Web3 actions to your application
+              with just a few lines of code. Unlock the power of AI-driven
+              blockchain interactions.
+            </p>
+            <div ref={buttonRef} className="space-x-4 mt-6">
+              <a
+                href="https://www.youtube.com/watch?v=Fbj2GuQgGTw"
+                target="_blank"
+              >
+                <Button
+                  size="lg"
+                  className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))] hover:scale-105 transition-transform duration-300 text-[hsl(var(--primary-foreground))]"
+                >
+                  Try Demo
+                </Button>
+              </a>
+              <a href="https://github.com/TikZSZ/hedera-chat" target="_blank">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-[hsl(var(--foreground))] border-[hsl(var(--border))] hover:bg-[hsl(var(--foreground))] hover:text-[hsl(var(--background))] hover:scale-105 transition-transform duration-300"
+                >
+                  View on GitHub
+                </Button>
+              </a>
+            </div>
+          </div>
         </section>
 
         <section className="mb-16">
@@ -287,7 +297,7 @@ const App: ChatSDKConfig = () => {
 
         <section className="text-center mb-16">
           <h3 className="text-2xl font-bold mb-4">Ready to get started?</h3>
-          <Button size="lg">Sign Up for Free</Button>
+          <Link to="/signup"><Button size="lg">Sign Up for Free</Button></Link>
         </section>
       </main>
     </div>

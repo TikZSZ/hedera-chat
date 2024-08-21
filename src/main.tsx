@@ -11,7 +11,7 @@ import { AuthProvider } from "./hooks/useAuth.tsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ChatStateProvider } from "./contexts/useChatState.tsx";
-
+import HashConnectProvider from "./contexts/hashconnect.tsx";
 const systemMessage = `
 You assist users with managing their Hedera DLT accounts, tokens, and educating them about Hedera and Web3. You provide answers to their queries based on your best knowledge. If you have tools to take specific actions on their behalf, inform them. If not, provide general guidance.
 
@@ -36,7 +36,6 @@ If the user does not provide optional keys (e.g., kycPublicKey, freezePublicKey)
 Current HBAR to USD rate is:
 `;
 
-const HashConnectProvider = lazy(() => import("./contexts/hashconnect.tsx"));
 
 const config: ChatSDKConfig = {
   // customStyles: {
