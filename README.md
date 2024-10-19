@@ -2,6 +2,8 @@
 
 HederaChat is a flexible and powerful React-based SDK for building Web3 actionable AI applications. It provides streamlined tools and tool use API, along with state management and hooks for easy integration with AI models in Apps.
 
+### [Demo Video](https://youtu.be/Fbj2GuQgGTw?si=9W8I8tj0YvN9HA8g)
+
 ## Steps to run the project
 
 1. Install dependecies
