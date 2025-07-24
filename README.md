@@ -4,7 +4,7 @@ HederaChat is a flexible and powerful React-based SDK for building Web3 actionab
 
 ### [Demo Video](https://youtu.be/Fbj2GuQgGTw?si=9W8I8tj0YvN9HA8g)
 
-## Steps to run the project
+## Steps to run the Project
 
 1. Install dependecies
 ```sh
